@@ -66,6 +66,8 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import org.telegram.PhoneFormat.PhoneFormat;
+import org.telegram.circles.Circles;
+import org.telegram.circles.SuccessListener;
 import org.telegram.messenger.AndroidUtilities;
 import org.telegram.messenger.ContactsController;
 import org.telegram.messenger.ImageLocation;
@@ -1079,7 +1081,12 @@ public class LoginActivity extends BaseFragment {
         ContactsController.getInstance(currentAccount).checkAppAccount();
         MessagesController.getInstance(currentAccount).checkProxyInfo(true);
         ConnectionsManager.getInstance(currentAccount).updateDcSettings();
-        needFinishActivity(afterSignup);
+        Circles.getInstance(currentAccount).onAuthSuccess(new SuccessListener(getParentActivity(), this) {
+            @Override
+            public void onSuccess() {
+                needFinishActivity(afterSignup);
+            }
+        });
     }
 
     private void fillNextCodeParams(Bundle params, TLRPC.TL_auth_sentCode res) {

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="AppName">Telefrost</string>
+    <string name="AppNameBeta">Telefrost Beta</string>
+
+    <string name="circles_telegram_protocol_error">Telegram protocol failure</string>
+    <string name="circles_bot_seed_id_lookup_failed">Telefrost bot lookup failed</string>
+    <string name="circles_token_retrieve_failed">Unable to get Telefrost token</string>
+    <string name="circles_empty_response">Empty response</string>
+    <string name="circles_unknown_error">Unknown error</string>
+</resources>
