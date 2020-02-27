@@ -139,6 +139,7 @@ public class TwoStepVerificationActivity extends BaseFragment implements Notific
     public TwoStepVerificationActivity(int account, int type) {
         super();
         currentAccount = account;
+        org.telegram.circles.Circles.getInstance(currentAccount);
         this.type = type;
         if (type == 0) {
             loadPasswordInfo(false);

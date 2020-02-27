@@ -66,8 +66,6 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import org.telegram.PhoneFormat.PhoneFormat;
-import org.telegram.circles.Circles;
-import org.telegram.circles.SuccessListener;
 import org.telegram.messenger.AndroidUtilities;
 import org.telegram.messenger.ContactsController;
 import org.telegram.messenger.ImageLocation;
@@ -228,6 +226,7 @@ public class LoginActivity extends BaseFragment {
     public LoginActivity(int account) {
         super();
         currentAccount = account;
+        org.telegram.circles.Circles.getInstance(account);
         newAccount = true;
     }
 
@@ -1081,10 +1080,18 @@ public class LoginActivity extends BaseFragment {
         ContactsController.getInstance(currentAccount).checkAppAccount();
         MessagesController.getInstance(currentAccount).checkProxyInfo(true);
         ConnectionsManager.getInstance(currentAccount).updateDcSettings();
-        Circles.getInstance(currentAccount).onAuthSuccess(new SuccessListener(getParentActivity(), this) {
+        showEditDoneProgress(true, true);
+        org.telegram.circles.Circles.getInstance(currentAccount).onAuthSuccess(new org.telegram.circles.SuccessListener(getParentActivity(), this) {
             @Override
             public void onSuccess() {
+                needHideProgress(false, false);
                 needFinishActivity(afterSignup);
+            }
+
+            @Override
+            public void onError(Throwable error) {
+                needHideProgress(false, false);
+                super.onError(error);
             }
         });
     }

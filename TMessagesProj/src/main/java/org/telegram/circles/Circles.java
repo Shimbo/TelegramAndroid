@@ -47,6 +47,7 @@ public class Circles implements NotificationCenter.NotificationCenterDelegate {
         accountInstance.getNotificationCenter().addObserver(this, NotificationCenter.messagesDidLoad);
         accountInstance.getNotificationCenter().addObserver(this, NotificationCenter.messagesDeleted);
         accountInstance.getNotificationCenter().addObserver(this, NotificationCenter.appDidLogout);
+        Logger.d("Initialized for account "+accountNum);
     }
 
     @Override
@@ -108,6 +109,8 @@ public class Circles implements NotificationCenter.NotificationCenterDelegate {
                         for (TLRPC.User user : res.users) {
                             if (user.bot && botUsername.equals(user.username)) {
                                 preferences.setBotPeerId((long) user.id);
+                                //store bot user
+                                accountInstance.getMessagesController().putUser(user, false);
                                 Logger.d("Bot peer id found "+ user.id);
                                 emitter.onSuccess(new Object());
                                 return;
@@ -125,18 +128,11 @@ public class Circles implements NotificationCenter.NotificationCenterDelegate {
         if (preferences.getBotPeerId() == null) {
             throw new IllegalStateException("Circles bot peer id not resolved yet");
         }
-        //init messages controller
-        accountInstance.getMessagesController().loadGlobalNotificationsSettings();
-        accountInstance.getMessagesController().loadDialogs(0, 0, 100, true);
-        accountInstance.getMessagesController().loadHintDialogs();
-        accountInstance.getMessagesController().loadUserInfo(UserConfig.getInstance(accountNum).getCurrentUser(), false, classGuid);
-
-        //load bot messages
-        accountInstance.getMessagesController().loadMessages(preferences.getBotPeerId(), Integer.MAX_VALUE, 0, 0, false, 0, classGuid, 2, 0, false, false, lastLoadIndex++);
 
         //send start request
         accountInstance.getSendMessagesHelper()
             .sendMessage("/start api", preferences.getBotPeerId(), null, null, false, null, null, null, true, 0);
+        Logger.d("Sent bot /start api message to "+preferences.getBotPeerId());
 
         //wait for incoming message
         return Single.create((emitter) -> {
@@ -144,6 +140,7 @@ public class Circles implements NotificationCenter.NotificationCenterDelegate {
 
             synchronized (botMessages) {
                 newMessagesAwaiting.incrementAndGet();
+                Logger.d("Waiting for bot response");
                 botMessages.wait(CirclesConstants.BOT_MESSAGE_WAIT_TIMEOUT);
 
                 Integer latestTokenMessageId = null;
@@ -165,6 +162,8 @@ public class Circles implements NotificationCenter.NotificationCenterDelegate {
             if (!latestToken.isEmpty()) {
                 Logger.d("Received new token: "+latestToken);
                 preferences.setAuthToken(latestToken);
+                //load all bot message to cleanup later
+                accountInstance.getMessagesController().loadMessages(preferences.getBotPeerId(), Integer.MAX_VALUE, 0, 0, false, 0, classGuid, 2, 0, false, false, lastLoadIndex++);
                 emitter.onSuccess(new Object());
             } else {
                 emitter.onError(new RequestError(RequestError.ErrorCode.DIDNT_RECEIVE_TOKEN));
@@ -252,6 +251,14 @@ public class Circles implements NotificationCenter.NotificationCenterDelegate {
         Logger.d("Did log out");
     }
 
+    private void cleanupOnAuthFailure() {
+        accountInstance.getConnectionsManager().cleanup(false);
+        accountInstance.getUserConfig().clearConfig();
+        accountInstance.getMessagesStorage().cleanup(false);
+        accountInstance.getMessagesController().cleanup();
+        accountInstance.getContactsController().deleteUnknownAppAccounts();
+    }
+
 
     // PUBLIC API
 
@@ -273,24 +280,23 @@ public class Circles implements NotificationCenter.NotificationCenterDelegate {
     public void onAuthSuccess(@NonNull SuccessListener listener) {
         Logger.d("Telefrost auth requested");
         if (preferences.getAuthToken() != null) {
+            Logger.d("Telefrost already authorized");
             listener.onSuccess();
         } else {
-            if (preferences.getBotPeerId() == null) {
-                compositeDisposable.add(
-                        lookupBotPeerId()
-                                .observeOn(AndroidSchedulers.mainThread())
-                                .subscribe(success -> compositeDisposable.add(
-                                        requestToken()
-                                                .observeOn(AndroidSchedulers.mainThread())
-                                                .subscribe(success1 -> listener.onSuccess(), listener::onError)
-                                ), listener::onError));
-            } else {
-                compositeDisposable.add(
-                        requestToken()
-                                .observeOn(AndroidSchedulers.mainThread())
-                                .subscribe(success1 -> listener.onSuccess(), listener::onError)
-                );
-            }
+            compositeDisposable.add(
+                lookupBotPeerId()
+                        .observeOn(AndroidSchedulers.mainThread())
+                        .subscribe(botLookupSuccess -> compositeDisposable.add(
+                                requestToken()
+                                        .observeOn(AndroidSchedulers.mainThread())
+                                        .subscribe(authSuccess -> listener.onSuccess(), error -> {
+                                            listener.onError(error);
+                                            cleanupOnAuthFailure();
+                                        })
+                        ), error -> {
+                            listener.onError(error);
+                            cleanupOnAuthFailure();
+                        }));
         }
     }
 }

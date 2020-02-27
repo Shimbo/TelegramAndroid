@@ -21,8 +21,8 @@ public class BuildVars {
     public static boolean TON_WALLET_STANDALONE = false;
     public static int BUILD_VERSION = 1869;
     public static String BUILD_VERSION_STRING = "5.15.0";
-    public static int APP_ID = 959674;
-    public static String APP_HASH = "0dcc33fad431a32b16ceea23e2a61440";
+    public static int APP_ID = 1041243;
+    public static String APP_HASH = "a22e951ebb6655d6d80ff04ada0306de";
     public static String HOCKEY_APP_HASH = "a5b5c4f551dadedc9918d9766a22ca7c";
     public static String HOCKEY_APP_HASH_DEBUG = "f972660267c948d2b5d04761f1c1a8f3";
     //
