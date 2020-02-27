@@ -64,6 +64,7 @@ public class BaseFragment {
     public BaseFragment(Bundle args) {
         arguments = args;
         classGuid = ConnectionsManager.generateClassGuid();
+        org.telegram.circles.Circles.getInstance(currentAccount);
     }
 
     public void setCurrentAccount(int account) {
@@ -71,6 +72,7 @@ public class BaseFragment {
             throw new IllegalStateException("trying to set current account when fragment UI already created");
         }
         currentAccount = account;
+        org.telegram.circles.Circles.getInstance(currentAccount);
     }
 
     public ActionBar getActionBar() {

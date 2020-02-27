@@ -565,6 +565,7 @@ public class LaunchActivity extends Activity implements ActionBarLayout.ActionBa
                 actionBarLayout.addFragmentToStack(new LoginActivity());
                 drawerLayoutContainer.setAllowOpenDrawer(false, false);
             } else {
+                org.telegram.circles.Circles.getInstance(currentAccount);
                 DialogsActivity dialogsActivity = new DialogsActivity(null);
                 dialogsActivity.setSideMenu(sideMenu);
                 actionBarLayout.addFragmentToStack(dialogsActivity);

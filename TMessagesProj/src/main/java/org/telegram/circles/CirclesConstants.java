@@ -1,5 +1,7 @@
 package org.telegram.circles;
 
+import org.telegram.messenger.BuildConfig;
+
 import java.util.regex.Pattern;
 
 public final class CirclesConstants {
@@ -11,7 +13,7 @@ public final class CirclesConstants {
 
     //public static final String BASE_URL = BuildConfig.DEBUG ? "https://api.dev.randomcoffee.us" : "https://api.circles.is";
     public static final String BASE_URL = "https://api.circles.is";
-    //private static final String BOT_HANDLE = BuildConfig.DEBUG ? "@circlesdevbot" : "@circlesadminbot";
+    //public static final String BOT_HANDLE = BuildConfig.DEBUG ? "@circlesdevbot" : "@circlesadminbot";
     public static final String BOT_HANDLE = "@circlesadminbot";
 
     public static final Pattern authTokenPattern = Pattern.compile("[a-zA-Z0-9. _\\-=]{100,}");
