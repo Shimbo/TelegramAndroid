@@ -2,10 +2,17 @@ package org.telegram.circles.data;
 
 import com.google.gson.annotations.SerializedName;
 
+import org.telegram.circles.CircleType;
+
 import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 public class CircleData implements Serializable {
-    public int id;
+    public long id;
     public String alias;
     public String domain;
     public String name;
@@ -28,6 +35,20 @@ public class CircleData implements Serializable {
     public String createdAt;
     @SerializedName("updated_at")
     public String updatedAt;
-    public int[] peers;
-    public int[] members;
+    public ArrayList<Long> peers;
+    public ArrayList<Long> members;
+    public CircleType circleType = CircleType.WORKSPACE;
+    public int counter = 0;
+
+
+    public Set<Long> getAllDialogIds() {
+        Set<Long> res = new HashSet<>();
+        if (peers != null) {
+            res.addAll(peers);
+        }
+        if (members != null) {
+            res.addAll(members);
+        }
+        return res;
+    }
 }

@@ -9,17 +9,21 @@ public final class CirclesConstants {
     public static final int READ_TIMEOUT = 20;
     public static final int WRITE_TIMEOUT = 60;
 
-    public static final long BOT_MESSAGE_WAIT_TIMEOUT = 30000;
+    static final long BOT_MESSAGE_WAIT_TIMEOUT = 30000;
 
-    //public static final String BASE_URL = BuildConfig.DEBUG ? "https://api.dev.randomcoffee.us" : "https://api.circles.is";
-    public static final String BASE_URL = "https://api.circles.is";
-    //public static final String BOT_HANDLE = BuildConfig.DEBUG ? "@circlesdevbot" : "@circlesadminbot";
-    public static final String BOT_HANDLE = "@circlesadminbot";
+    static final long CIRCLES_CACHE_UPDATE_INTERVAL = 60 * 1000;
+
+    public static final String BASE_URL = BuildConfig.DEBUG ? "https://api.dev.randomcoffee.us" : "https://api.circles.is";
+    //public static final String BASE_URL = "https://api.circles.is";
+    static final String BOT_HANDLE = BuildConfig.DEBUG ? "@TelefrostDevBot" : "@TelefrostConciergeBot";
+    //public static final String BOT_HANDLE = "@TelefrostConciergeBot";
 
     public static final Pattern authTokenPattern = Pattern.compile("[a-zA-Z0-9. _\\-=]{100,}");
 
-    public static final String PREFERENCES_NAME = "telefrost_settings";
+    static final String PREFERENCES_NAME = "telefrost_settings";
 
+    static final long DEFAULT_CIRCLE_ID_PERSONAL = -2;
+    static final long DEFAULT_CIRCLE_ID_ARCHIVED = -1;
 
     private CirclesConstants() {}
 }

@@ -19,7 +19,7 @@ public abstract class SuccessListener {
 
     public abstract void onSuccess();
 
-    public void onError(Throwable error) {
+    public String onError(Throwable error) {
         String message;
         if (error instanceof RequestError) {
             RequestError.ErrorCode code = ((RequestError) error).code;
@@ -42,6 +42,11 @@ public abstract class SuccessListener {
         builder.setTitle(LocaleController.getString("AppName", R.string.AppName));
         builder.setPositiveButton(LocaleController.getString("OK", R.string.OK), null);
         builder.setMessage(message);
-        baseFragment.showDialog(builder.create());
+        if (baseFragment != null) {
+            baseFragment.showDialog(builder.create());
+        } else {
+            builder.create().show();
+        }
+        return message;
     }
 }

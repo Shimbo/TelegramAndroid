@@ -1089,6 +1089,10 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
         item.setClearsTextOnSearchCollapse(false);
         item.setSearchFieldHint(LocaleController.getString("Search", R.string.Search));
         item.setContentDescription(LocaleController.getString("Search", R.string.Search));
+        if (folderId == 0) {
+            final ActionBarMenuItem workspacesItem = menu.addItem(3, R.drawable.input_bot2);
+            workspacesItem.setContentDescription(context.getString(R.string.circles_workspaces));
+        }
         if (onlySelect) {
             actionBar.setBackButtonImage(R.drawable.ic_ab_back);
             if (dialogsType == 3 && selectAlertString == null) {
@@ -1106,11 +1110,7 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
             if (folderId != 0) {
                 actionBar.setTitle(LocaleController.getString("ArchivedChats", R.string.ArchivedChats));
             } else {
-                if (BuildVars.DEBUG_VERSION) {
-                    actionBar.setTitle("Telegram Beta");
-                } else {
-                    actionBar.setTitle(LocaleController.getString("AppName", R.string.AppName));
-                }
+                org.telegram.circles.Circles.getInstance().updateDialogActionBarTitle(actionBar);
             }
             if (folderId == 0) {
                 actionBar.setSupportsHolidayImage(true);
@@ -1163,6 +1163,8 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
                     updatePasscodeButton();
                 } else if (id == 2) {
                     presentFragment(new ProxyListActivity());
+                } else if (id == 3) {
+                    showDialog(new org.telegram.circles.ui.WorkspaceSelector(DialogsActivity.this));
                 } else if (id >= 10 && id < 10 + UserConfig.MAX_ACCOUNT_COUNT) {
                     if (getParentActivity() == null) {
                         return;
@@ -3425,6 +3427,9 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
             if (dialogsListFrozen) {
                 return;
             }
+            if (folderId == 0) {
+                org.telegram.circles.Circles.getInstance().updateDialogActionBarTitle(actionBar);
+            }
             //checkUnreadCount(true);
             if (dialogsAdapter != null) {
                 if (dialogsAdapter.isDataSetChanged() || args.length > 0) {
@@ -3584,7 +3589,7 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
         }
         MessagesController messagesController = AccountInstance.getInstance(currentAccount).getMessagesController();
         if (dialogsType == 0) {
-            return messagesController.getDialogs(folderId);
+            return org.telegram.circles.Circles.getInstance().filterOutArchived(folderId, messagesController.getDialogs(folderId));
         } else if (dialogsType == 1) {
             return messagesController.dialogsServerOnly;
         } else if (dialogsType == 2) {

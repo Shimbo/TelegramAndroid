@@ -12,7 +12,7 @@ public final class Utils {
     }
 
     public static boolean isSystemUserMessage(String text) {
-        return text.startsWith("/start");
+        return text.startsWith("/start") || text.startsWith("/create");
     }
 
 
