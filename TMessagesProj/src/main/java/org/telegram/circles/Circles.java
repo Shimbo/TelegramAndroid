@@ -68,7 +68,7 @@ public class Circles implements NotificationCenter.NotificationCenterDelegate {
         accountInstance.getNotificationCenter().addObserver(this, NotificationCenter.appDidLogout);
         synchronized (cachedCircles) {
             cachedCircles.clear();
-            //cachedCircles.addAll(preferences.getCachedCircles());
+            cachedCircles.addAll(preferences.getCachedCircles());
         }
         setSelectedCircle(null);
         Logger.d("Initialized for account "+accountNum);

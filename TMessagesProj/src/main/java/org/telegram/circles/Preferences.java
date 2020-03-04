@@ -5,10 +5,12 @@ import android.content.SharedPreferences;
 import com.google.gson.Gson;
 
 import org.telegram.circles.data.CircleData;
+import org.telegram.circles.data.CirclesList;
 import org.telegram.circles.utils.Logger;
 import org.telegram.messenger.ApplicationLoader;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import static android.content.Context.MODE_PRIVATE;
@@ -69,24 +71,24 @@ class Preferences {
 
     List<CircleData> getCachedCircles() {
         String data = prefs.getString(CAHCED_CIRCLES_KEY, null);
-        List<CircleData> circles = null;
+        List<CircleData> circles = new ArrayList<>();
         if (data != null && !data.isEmpty()) {
             try {
-                circles = (new Gson()).fromJson(data, List.class);
+                CirclesList list = (new Gson()).fromJson(data, CirclesList.class);
+                if (list != null && list.circles != null) {
+                    circles.addAll(Arrays.asList(list.circles));
+                }
             } catch (Exception e) {
                 Logger.e(e);
             }
         }
-        if (circles != null) {
-            Logger.d("Loaded cached circles: "+circles.size());
-            return circles;
-        } else {
-            return new ArrayList<>();
-        }
+        return circles;
     }
 
     void setCachedCircles(List<CircleData> cachedCircles) {
-        String data = (new Gson()).toJson(cachedCircles);
+        CirclesList list = new CirclesList();
+        list.circles = cachedCircles.toArray(new CircleData[0]);
+        String data = (new Gson()).toJson(list);
         prefs.edit().putString(CAHCED_CIRCLES_KEY, data).apply();
     }
 
