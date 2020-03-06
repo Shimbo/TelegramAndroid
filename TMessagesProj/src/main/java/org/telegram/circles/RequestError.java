@@ -23,7 +23,9 @@ public final class RequestError extends Throwable {
         TLRPC(R.string.circles_telegram_protocol_error),
         BOT_SEED_LOOKUP_FAILED(R.string.circles_bot_seed_id_lookup_failed),
         EMPTY_RESPONSE(R.string.circles_empty_response),
-        DIDNT_RECEIVE_TOKEN(R.string.circles_token_retrieve_failed);
+        DIDNT_RECEIVE_TOKEN(R.string.circles_token_retrieve_failed),
+        ERROR_ON_CIRCLE_CREATION(R.string.new_circle_create_error),
+        CIRCLE_NAME_IS_EMPTY(R.string.circle_name_should_not_be_blank);
 
         public final int message;
 

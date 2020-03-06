@@ -1089,9 +1089,9 @@ public class LoginActivity extends BaseFragment {
             }
 
             @Override
-            public void onError(Throwable error) {
+            public String onError(Throwable error) {
                 needHideProgress(false, false);
-                super.onError(error);
+                return super.onError(error);
             }
         });
     }
