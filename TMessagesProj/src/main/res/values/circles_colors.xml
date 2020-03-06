@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="circles_blue">#65a9e0</color>
+    <color name="circles_light_grey">#D6E2EC</color>
+    <color name="circles_grey">#a9b6c1</color>
+    <color name="circles_create">#2577d1</color>
+    <color name="circles_counter">#0184ef</color>
+    <color name="circles_error_red">#F44336</color>
+</resources>

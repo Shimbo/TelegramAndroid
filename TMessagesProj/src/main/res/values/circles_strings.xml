@@ -3,9 +3,21 @@
     <string name="AppName">Telefrost</string>
     <string name="AppNameBeta">Telefrost Beta</string>
 
+    <string name="circles_workspaces">Workspaces</string>
+    <string name="circles_create">Create workspace</string>
+    <string name="circles_personal">Personal</string>
+    <string name="circles_archive">Archived Chats</string>
+
+    <string name="new_circle">New workspace</string>
+    <string name="circle_name">Workspace name</string>
+    <string name="circle_create">Create</string>
+    <string name="circle_cancel">Cancel</string>
+
     <string name="circles_telegram_protocol_error">Telegram protocol failure</string>
     <string name="circles_bot_seed_id_lookup_failed">Telefrost bot lookup failed</string>
     <string name="circles_token_retrieve_failed">Unable to get Telefrost token</string>
+    <string name="circle_name_should_not_be_blank">Workspace name shouldn\'t be blank</string>
+    <string name="new_circle_create_error">There was an error when creating a new circle</string>
     <string name="circles_empty_response">Empty response</string>
     <string name="circles_unknown_error">Unknown error</string>
 </resources>
