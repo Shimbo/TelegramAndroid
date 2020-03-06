@@ -6,9 +6,7 @@ import org.telegram.circles.CircleType;
 
 import java.io.Serializable;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 
 public class CircleData implements Serializable {
@@ -41,7 +39,7 @@ public class CircleData implements Serializable {
     public int counter = 0;
 
 
-    public Set<Long> getAllDialogIds() {
+    public Set<Long> getAllPeerIds() {
         Set<Long> res = new HashSet<>();
         if (peers != null) {
             res.addAll(peers);
