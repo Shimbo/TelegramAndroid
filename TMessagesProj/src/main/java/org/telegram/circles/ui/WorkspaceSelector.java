@@ -1,6 +1,12 @@
 package org.telegram.circles.ui;
 
 import android.content.Context;
+import android.content.res.ColorStateList;
+import android.graphics.drawable.Drawable;
+import android.graphics.drawable.GradientDrawable;
+import android.graphics.drawable.LayerDrawable;
+import android.graphics.drawable.StateListDrawable;
+import android.os.Build;
 import android.os.Bundle;
 import android.view.Gravity;
 import android.view.LayoutInflater;
@@ -9,6 +15,7 @@ import android.view.ViewGroup;
 import android.view.inputmethod.EditorInfo;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
@@ -38,7 +45,7 @@ public class WorkspaceSelector extends BasicBottomSheet {
     private final BaseFragment baseFragment;
     private final Collection<Long> dialogsToMove;
     private RecyclerView recyclerView;
-    private View progress;
+    private ProgressBar progress;
     private TextView errorMessageView;
     private WorkspacesAdapter adapter;
 
@@ -99,12 +106,17 @@ public class WorkspaceSelector extends BasicBottomSheet {
     @Override
     protected View createView(LayoutInflater inflater, ViewGroup parent) {
         View rootView = inflater.inflate(R.layout.worspace_selector, parent, false);
+        rootView.setBackgroundColor(Theme.getColor(Theme.key_windowBackgroundWhite));
         progress = rootView.findViewById(R.id.progress);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            progress.setIndeterminateTintList(ColorStateList.valueOf(Theme.getColor(Theme.key_avatar_backgroundSaved)));
+        }
         recyclerView = rootView.findViewById(R.id.recycler_view);
         recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
         adapter = new WorkspacesAdapter(getContext());
         recyclerView.setAdapter(adapter);
         errorMessageView = rootView.findViewById(R.id.error_message_view);
+        errorMessageView.setTextColor(Theme.getColor(Theme.key_chats_sentError));
         return rootView;
     }
 
@@ -206,13 +218,39 @@ public class WorkspaceSelector extends BasicBottomSheet {
     private class WorkspaceViewHolder extends RecyclerListView.Holder {
         private TextView litera, name, counter;
         private ImageView icon;
+        private GradientDrawable iconBg;
 
         WorkspaceViewHolder(View view) {
             super(view);
+
+            StateListDrawable itemBg = (StateListDrawable) view.getResources().getDrawable(R.drawable.circles_top_bottom_border_bg);
+            for (int i = 0; i < itemBg.getStateCount(); i++) {
+                Drawable item = itemBg.getStateDrawable(i);
+                if (item instanceof GradientDrawable) {
+                    ((GradientDrawable) item).setColor(Theme.getColor(Theme.key_windowBackgroundChecked));
+                } else if (item instanceof LayerDrawable) {
+                    ((GradientDrawable) ((LayerDrawable) item).getDrawable(0)).setColor(Theme.getColor(Theme.key_dialogBackgroundGray));
+                    ((GradientDrawable) ((LayerDrawable) item).getDrawable(1)).setColor(Theme.getColor(Theme.key_dialogBackground));
+                }
+            }
+            view.setBackground(itemBg);
+
             icon = view.findViewById(R.id.icon);
+            iconBg = (GradientDrawable) icon.getResources().getDrawable(R.drawable.circles_workspace_gray_bg).mutate();
+            iconBg.setColor(Theme.getColor(Theme.key_avatar_backgroundArchived));
+
             litera = view.findViewById(R.id.litera);
+            GradientDrawable literaBg = (GradientDrawable) litera.getResources().getDrawable(R.drawable.circles_workspace_blue_bg).mutate();
+            literaBg.setColor(Theme.getColor(Theme.key_avatar_backgroundSaved));
+            litera.setBackground(literaBg);
+
             name = view.findViewById(R.id.name);
+
             counter = view.findViewById(R.id.counter);
+            GradientDrawable counterBg = (GradientDrawable) counter.getResources().getDrawable(R.drawable.circles_counter_bg).mutate();
+            counterBg.setColor(Theme.getColor(Theme.key_chats_unreadCounter));
+            counter.setBackground(counterBg);
+            counter.setTextColor(Theme.getColor(Theme.key_chats_unreadCounterText));
         }
 
         void bind(final CircleData circle) {
@@ -223,12 +261,19 @@ public class WorkspaceSelector extends BasicBottomSheet {
                 icon.setBackground(null);
                 litera.setVisibility(View.GONE);
                 name.setText(R.string.circles_create);
-                name.setTextColor(name.getResources().getColor(R.color.circles_create));
+                name.setTextColor(Theme.getColor(Theme.key_chat_messageLinkIn));
+
                 counter.setVisibility(View.GONE);
                 itemView.setOnClickListener( v -> {
                     showCreateNewWorkspaceDialog();
                 });
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                    icon.setImageTintList(ColorStateList.valueOf(Theme.getColor(Theme.key_chat_messageLinkIn)));
+                }
             } else {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                    icon.setImageTintList(ColorStateList.valueOf(Theme.getColor(Theme.key_avatar_text)));
+                }
                 switch (circle.circleType) {
                     case PERSONAL:
                     case ARCHIVE:
@@ -236,21 +281,26 @@ public class WorkspaceSelector extends BasicBottomSheet {
                         litera.setVisibility(View.GONE);
                         int padding = AndroidUtilities.dp(9);
                         icon.setPadding(padding, padding, padding, padding);
-                        icon.setBackgroundResource(R.drawable.circles_workspace_gray_bg);
+                        icon.setBackground(iconBg);
                         icon.setImageResource(circle.circleType == CircleType.PERSONAL ? R.drawable.circles_personal : R.drawable.circles_archive);
                         name.setText(circle.circleType == CircleType.PERSONAL ? R.string.circles_personal : R.string.circles_archive);
                         break;
                     case WORKSPACE:
                         icon.setVisibility(View.GONE);
                         litera.setVisibility(View.VISIBLE);
-                        litera.setText(circle.name.substring(0, 1).toUpperCase());
+                        String l = circle.name.substring(0, 1);
+                        String[] parts = circle.name.split(" ");
+                        if (parts.length > 1) {
+                            l += parts[1].substring(0, 1);
+                        }
+                        litera.setText(l.toUpperCase());
                         name.setText(circle.name);
                         break;
                 }
 
-                name.setTextColor(name.getResources().getColor(android.R.color.black));
+                name.setTextColor(Theme.getColor(Theme.key_chats_name));
                 counter.setText(String.valueOf(circle.counter));
-                counter.setVisibility(View.VISIBLE);
+                counter.setVisibility(circle.counter > 0 ? View.VISIBLE : View.GONE);
                 itemView.setOnClickListener( v -> {
                     Circles.getInstance(currentAccount).setSelectedCircle(circle);
                     if (circle.circleType == CircleType.ARCHIVE) {

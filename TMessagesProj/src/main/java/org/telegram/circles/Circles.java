@@ -18,6 +18,7 @@ import org.telegram.messenger.ApplicationLoader;
 import org.telegram.messenger.BuildConfig;
 import org.telegram.messenger.ChatObject;
 import org.telegram.messenger.MessageObject;
+import org.telegram.messenger.MessagesController;
 import org.telegram.messenger.NotificationCenter;
 import org.telegram.messenger.R;
 import org.telegram.messenger.UserConfig;
@@ -110,17 +111,15 @@ public class Circles implements NotificationCenter.NotificationCenterDelegate {
         synchronized (cachedCircles) {
             cachedCircles.clear();
 
-            Set<TLRPC.Dialog> personalDialogs = dialogsMap.get(CirclesConstants.DEFAULT_CIRCLE_ID_PERSONAL);
             CircleData personal = new CircleData();
             personal.id = CirclesConstants.DEFAULT_CIRCLE_ID_PERSONAL;
             personal.circleType = CircleType.PERSONAL;
-            personal.counter = personalDialogs != null ? personalDialogs.size() : 0;
+            personal.counter = countUnread(dialogsMap.get(CirclesConstants.DEFAULT_CIRCLE_ID_PERSONAL));
             cachedCircles.add(personal);
 
             if (circlesList != null && circlesList.circles != null) {
                 for (CircleData circle : circlesList.circles) {
-                    Set<TLRPC.Dialog> circleDialogs = dialogsMap.get(circle.id);
-                    circle.counter = circleDialogs != null ? circleDialogs.size() : 0;
+                    circle.counter = countUnread(dialogsMap.get(circle.id));
                     cachedCircles.add(circle);
                 }
             }
@@ -130,13 +129,26 @@ public class Circles implements NotificationCenter.NotificationCenterDelegate {
                 CircleData archive = new CircleData();
                 archive.id = CirclesConstants.DEFAULT_CIRCLE_ID_ARCHIVED;
                 archive.circleType = CircleType.ARCHIVE;
-                archive.counter = archivedDialogs.size();
+                archive.counter = countUnread(archivedDialogs);
                 cachedCircles.add(archive);
             }
 
             lastCacheUpdateTime = SystemClock.uptimeMillis();
             preferences.setCachedCircles(cachedCircles);
         }
+    }
+
+    private int countUnread(Set<TLRPC.Dialog> dialogs) {
+        int count = 0;
+        if (dialogs != null || dialogs.size() > 0) {
+            for (TLRPC.Dialog dialog : dialogs) {
+                count += dialog.unread_count;
+                if (dialog instanceof TLRPC.TL_dialogFolder && ((TLRPC.TL_dialogFolder) dialog).folder.id != 0) {
+                    count += dialog.unread_mentions_count;
+                }
+            }
+        }
+        return count;
     }
 
     private void selectCurrentCircle(Map<Long, Set<TLRPC.Dialog>> dialogsMap) {
