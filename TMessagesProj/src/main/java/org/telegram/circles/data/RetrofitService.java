@@ -1,6 +1,9 @@
 package org.telegram.circles.data;
 
+import java.util.ArrayList;
+
 import io.reactivex.Single;
+import okhttp3.ResponseBody;
 import retrofit2.Call;
 import retrofit2.http.Body;
 import retrofit2.http.GET;
@@ -12,8 +15,8 @@ public interface RetrofitService {
     Single<CirclesList> getCircles(@Header("Authorization") String token);
 
     @POST("/tgfork/connection")
-    Single<Object> sendCircleInclusionData(@Header("Authorization") String token, @Body Object body);
+    Single<ResponseBody> changeConnection(@Header("Authorization") String token, @Body ChangeConnection body);
 
     @POST("/tgfork/connections")
-    Single<Object> sendMembers(@Header("Authorization") String token, @Body Object body);
+    Single<ResponseBody> sendMembers(@Header("Authorization") String token, @Body ArrayList<ConnectionsState> body);
 }
