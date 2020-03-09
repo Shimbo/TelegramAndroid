@@ -44,12 +44,13 @@
     <TextView
         android:id="@+id/counter"
         android:layout_width="wrap_content"
-        android:layout_height="20dp"
-        android:gravity="center_vertical"
-        android:paddingLeft="9dp"
-        android:paddingRight="9dp"
+        android:layout_height="24dp"
+        android:minWidth="24dp"
+        android:gravity="center"
+        android:paddingLeft="5dp"
+        android:paddingRight="5dp"
         android:background="@drawable/circles_counter_bg"
-        android:textSize="12sp"
+        android:textSize="14sp"
         android:textColor="@android:color/white" />
 
 </LinearLayout>
