@@ -2,14 +2,11 @@ package org.telegram.circles.ui;
 
 import android.content.Context;
 import android.os.Bundle;
-import android.text.InputType;
-import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.inputmethod.EditorInfo;
-import android.widget.EditText;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.TextView;
@@ -18,15 +15,11 @@ import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
-import com.google.android.exoplayer2.upstream.cache.CacheDataSource;
-
 import org.telegram.circles.CircleType;
 import org.telegram.circles.Circles;
 import org.telegram.circles.SuccessListener;
 import org.telegram.circles.data.CircleData;
-import org.telegram.circles.utils.Logger;
 import org.telegram.messenger.AndroidUtilities;
-import org.telegram.messenger.LocaleController;
 import org.telegram.messenger.R;
 import org.telegram.ui.ActionBar.AlertDialog;
 import org.telegram.ui.ActionBar.BaseFragment;
@@ -36,32 +29,42 @@ import org.telegram.ui.Components.RecyclerListView;
 import org.telegram.ui.DialogsActivity;
 
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Iterator;
 import java.util.List;
 
 public class WorkspaceSelector extends BasicBottomSheet {
-    private BaseFragment baseFragment;
+    private final int currentAccount;
+    private final BaseFragment baseFragment;
+    private final Collection<Long> dialogsToMove;
     private RecyclerView recyclerView;
     private View progress;
     private TextView errorMessageView;
     private WorkspacesAdapter adapter;
 
-    public WorkspaceSelector(BaseFragment baseFragment) {
+    public WorkspaceSelector(int currentAccount, BaseFragment baseFragment) {
+        this(currentAccount, baseFragment, null);
+    }
+
+    public WorkspaceSelector(int currentAccount, BaseFragment baseFragment, Collection<Long> dialogsToMove) {
         super(baseFragment.getParentActivity());
         this.baseFragment = baseFragment;
+        this.currentAccount = currentAccount;
+        this.dialogsToMove = dialogsToMove;
         loadData();
     }
 
     private void loadData() {
-        List<CircleData> circles = Circles.getInstance().getCachedCircles();
+        List<CircleData> circles = Circles.getInstance(currentAccount).getCachedCircles();
         if (!circles.isEmpty()) {
             hideProgress();
             adapter.setData(circles);
         }
-        Circles.getInstance().loadCircles(new SuccessListener(getContext(), null) {
+        Circles.getInstance(currentAccount).loadCircles(new SuccessListener(getContext(), null) {
             @Override
             public void onSuccess() {
                 hideProgress();
-                List<CircleData> data = Circles.getInstance().getCachedCircles();
+                List<CircleData> data = Circles.getInstance(currentAccount).getCachedCircles();
                 adapter.setData(data);
             }
 
@@ -132,7 +135,7 @@ public class WorkspaceSelector extends BasicBottomSheet {
         builder.setNegativeButton(context.getString(R.string.circle_cancel), null);
         builder.setPositiveButton(context.getString(R.string.circle_create), (dialog, which) -> {
             showProgress();
-            Circles.getInstance().createWorkspace(editText.getText().toString(), new SuccessListener(context, null) {
+            Circles.getInstance(currentAccount).createWorkspace(editText.getText().toString(), new SuccessListener(context, null) {
                 @Override
                 public void onSuccess() {
                     loadData();
@@ -167,13 +170,20 @@ public class WorkspaceSelector extends BasicBottomSheet {
         }
 
         void setData(List<CircleData> circles) {
+            if (dialogsToMove != null) {
+                for (Iterator<CircleData> i = circles.iterator(); i.hasNext();) {
+                    if (i.next().circleType == CircleType.ARCHIVE) {
+                        i.remove();
+                    }
+                }
+            }
             this.circles = circles;
             notifyDataSetChanged();
         }
 
         @Override
         public int getItemCount() {
-            return circles.size() + 1;
+            return circles.size() + (dialogsToMove == null ? 1 : 0);
         }
 
         @NonNull
@@ -185,7 +195,7 @@ public class WorkspaceSelector extends BasicBottomSheet {
 
         @Override
         public void onBindViewHolder(RecyclerView.ViewHolder holder, int position) {
-            if (position < getItemCount()-1) {
+            if (dialogsToMove != null || position < getItemCount()-1) {
                 ((WorkspaceViewHolder) holder).bind(circles.get(position));
             } else {
                 ((WorkspaceViewHolder) holder).bind(null);
@@ -242,13 +252,29 @@ public class WorkspaceSelector extends BasicBottomSheet {
                 counter.setText(String.valueOf(circle.counter));
                 counter.setVisibility(View.VISIBLE);
                 itemView.setOnClickListener( v -> {
-                    Circles.getInstance().setSelectedCircle(circle);
+                    Circles.getInstance(currentAccount).setSelectedCircle(circle);
                     if (circle.circleType == CircleType.ARCHIVE) {
                         Bundle args = new Bundle();
                         args.putInt("folderId", 1);
                         baseFragment.presentFragment(new DialogsActivity(args));
                     }
-                    dismiss();
+                    if (dialogsToMove != null) {
+                        showProgress();
+                        Circles.getInstance(currentAccount).moveDialogs(circle, dialogsToMove, new SuccessListener(baseFragment.getParentActivity(), baseFragment){
+                            @Override
+                            public void onSuccess() {
+                                dismiss();
+                            }
+
+                            @Override
+                            public String onError(Throwable error) {
+                                hideProgress();
+                                return super.onError(error);
+                            }
+                        });
+                    } else {
+                        dismiss();
+                    }
                 });
             }
         }

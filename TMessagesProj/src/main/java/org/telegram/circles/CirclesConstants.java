@@ -11,7 +11,7 @@ public final class CirclesConstants {
 
     static final long BOT_MESSAGE_WAIT_TIMEOUT = 30000;
 
-    static final long CIRCLES_CACHE_UPDATE_INTERVAL = 60 * 1000;
+    static final long CIRCLES_CACHE_UPDATE_INTERVAL = 2 * 60 * 1000;
 
     public static final String BASE_URL = BuildConfig.DEBUG ? "https://api.dev.randomcoffee.us" : "https://api.circles.is";
     //public static final String BASE_URL = "https://api.circles.is";
@@ -22,8 +22,8 @@ public final class CirclesConstants {
 
     static final String PREFERENCES_NAME = "telefrost_settings";
 
-    static final long DEFAULT_CIRCLE_ID_PERSONAL = -2;
-    static final long DEFAULT_CIRCLE_ID_ARCHIVED = -1;
+    public static final long DEFAULT_CIRCLE_ID_PERSONAL = 0;
+    public static final long DEFAULT_CIRCLE_ID_ARCHIVED = 1;
 
     private CirclesConstants() {}
 }

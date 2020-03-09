@@ -25,6 +25,7 @@ public final class RequestError extends Throwable {
         EMPTY_RESPONSE(R.string.circles_empty_response),
         DIDNT_RECEIVE_TOKEN(R.string.circles_token_retrieve_failed),
         ERROR_ON_CIRCLE_CREATION(R.string.new_circle_create_error),
+        ERROR_ON_CIRCLE_MOVE(R.string.circle_move_failed),
         CIRCLE_NAME_IS_EMPTY(R.string.circle_name_should_not_be_blank);
 
         public final int message;
