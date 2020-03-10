@@ -302,6 +302,7 @@ public class WorkspaceSelector extends BasicBottomSheet {
                 counter.setText(String.valueOf(circle.counter));
                 counter.setVisibility(circle.counter > 0 ? View.VISIBLE : View.GONE);
                 itemView.setOnClickListener( v -> {
+                    long currentCircleId = Circles.getInstance(currentAccount).getSelectedCircle();
                     Circles.getInstance(currentAccount).setSelectedCircle(circle);
                     if (circle.circleType == CircleType.ARCHIVE) {
                         Bundle args = new Bundle();
@@ -310,7 +311,7 @@ public class WorkspaceSelector extends BasicBottomSheet {
                     }
                     if (dialogsToMove != null) {
                         showProgress();
-                        Circles.getInstance(currentAccount).moveDialogs(circle, dialogsToMove, new SuccessListener(baseFragment.getParentActivity(), baseFragment){
+                        Circles.getInstance(currentAccount).moveDialogs(currentCircleId, circle.id, dialogsToMove, new SuccessListener(baseFragment.getParentActivity(), baseFragment){
                             @Override
                             public void onSuccess() {
                                 dismiss();

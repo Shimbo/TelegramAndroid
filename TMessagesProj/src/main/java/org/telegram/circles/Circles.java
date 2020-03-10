@@ -8,6 +8,7 @@ import org.telegram.circles.data.ChangeConnection;
 import org.telegram.circles.data.ChatData;
 import org.telegram.circles.data.CircleData;
 import org.telegram.circles.data.CirclesList;
+import org.telegram.circles.data.ConnectionsState;
 import org.telegram.circles.data.RetrofitHelper;
 import org.telegram.circles.data.UserData;
 import org.telegram.circles.ui.WorkspaceSelector;
@@ -16,14 +17,11 @@ import org.telegram.circles.utils.Utils;
 import org.telegram.messenger.AccountInstance;
 import org.telegram.messenger.ApplicationLoader;
 import org.telegram.messenger.BuildConfig;
-import org.telegram.messenger.ChatObject;
 import org.telegram.messenger.MessageObject;
-import org.telegram.messenger.MessagesController;
 import org.telegram.messenger.NotificationCenter;
 import org.telegram.messenger.R;
 import org.telegram.messenger.UserConfig;
 import org.telegram.tgnet.ConnectionsManager;
-import org.telegram.tgnet.TLObject;
 import org.telegram.tgnet.TLRPC;
 import org.telegram.ui.ActionBar.ActionBar;
 import org.telegram.ui.ActionBar.BaseFragment;
@@ -31,6 +29,8 @@ import org.telegram.ui.ActionBar.BaseFragment;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -61,6 +61,10 @@ public class Circles implements NotificationCenter.NotificationCenterDelegate {
     private final List<CircleData> cachedCircles = new ArrayList<>();
     private volatile long lastCacheUpdateTime = 0;
     private volatile boolean circlesRequestInProgress = false;
+    private volatile boolean membersRequestInProgress = false;
+    private volatile long lastTimeMembersSent = 0;
+    private volatile String lastMembersHash = null;
+
 
     private Circles (int accountNum) {
         this.accountNum = accountNum;
@@ -119,6 +123,7 @@ public class Circles implements NotificationCenter.NotificationCenterDelegate {
 
             if (circlesList != null && circlesList.circles != null) {
                 for (CircleData circle : circlesList.circles) {
+                    Logger.d("Received circle "+circle.name+" with "+circle.getAllPeerIds().size()+" members");
                     circle.counter = countUnread(dialogsMap.get(circle.id));
                     cachedCircles.add(circle);
                 }
@@ -190,25 +195,8 @@ public class Circles implements NotificationCenter.NotificationCenterDelegate {
         } else {
             setSelectedCircle(null);
         }
-    }
 
-    private Single<TLObject> sendRequest(TLObject req) {
-        return Single.create((SingleEmitter<TLObject> emitter) ->
-            ConnectionsManager.getInstance(UserConfig.selectedAccount).sendRequest(req, (response, error) -> {
-                    if (error == null) {
-                        if (response != null) {
-                            emitter.onSuccess(response);
-                        } else {
-                            emitter.onError(new RequestError(RequestError.ErrorCode.EMPTY_RESPONSE));
-                        }
-                    } else {
-                        emitter.onError(new RequestError(error));
-                    }
-                }
-            )
-        )
-        .subscribeOn(Schedulers.io())
-        .observeOn(Schedulers.io());
+        sendMembers();
     }
 
     private Single<Object> lookupBotPeerId() {
@@ -216,7 +204,7 @@ public class Circles implements NotificationCenter.NotificationCenterDelegate {
             TLRPC.TL_contacts_search req = new TLRPC.TL_contacts_search();
             req.q = CirclesConstants.BOT_HANDLE;
             req.limit = 10;
-            compositeDisposable.add(sendRequest(req)
+            compositeDisposable.add(Utils.sendRequest(req, accountInstance)
                 .subscribe(response -> {
                     TLRPC.TL_contacts_found res = (TLRPC.TL_contacts_found) response;
                     if (res.users != null) {
@@ -341,64 +329,27 @@ public class Circles implements NotificationCenter.NotificationCenterDelegate {
         .observeOn(Schedulers.io());
     }
 
-    private Single<Object> changeConnection(final @NonNull CircleData toCircle, final @NonNull Set<TLRPC.Dialog> dialogsToMove) {
+    private Single<Object> changeConnection(final Long fromCircleId, final long toCircleId, final @NonNull Set<TLRPC.Dialog> dialogsToMove) {
         return Single.create((emitter) -> {
             final AtomicInteger requestsRunning = new AtomicInteger(0);
             final Set<Throwable> exceptions = new HashSet<>();
 
             for (TLRPC.Dialog dialog : dialogsToMove) {
                 final ChangeConnection connection = new ChangeConnection();
-                connection.toCircleId = toCircle.id;
-                connection.fromCircleId = 0L;
-
-                Map<Long, Set<TLRPC.Dialog>> dialogsMap = Utils.mapDialogsToCircles(cachedCircles, accountInstance);
-                for (Long circleId : dialogsMap.keySet()) {
-                    Set<TLRPC.Dialog> circleDialogs = dialogsMap.get(circleId);
-                    if (circleDialogs != null) {
-                        for (TLRPC.Dialog d : circleDialogs) {
-                            if (d.id == dialog.id) {
-                                if (connection.fromCircleId == 0L || circleId.equals(connection.fromCircleId)) {
-                                    connection.fromCircleId = circleId;
-                                } else {
-                                    connection.fromCircleId = null;
-                                }
-                                break;
-                            }
-                        }
-                    }
-                }
-
-                if (connection.toCircleId.equals(connection.fromCircleId)) {
-                    continue;
-                }
+                connection.toCircleId = toCircleId;
+                connection.fromCircleId = fromCircleId;
 
                 TLRPC.User user = Utils.getDialogUser(dialog.id, accountInstance);
                 if (user != null) {
                     connection.user = new UserData(user);
                 } else {
-                    TLRPC.Chat chat = Utils.getDialogChat(dialog.id, accountInstance);
-                    TLRPC.ChatFull fullChat = null;
+                    final TLRPC.Chat chat = Utils.getDialogChat(dialog.id, accountInstance);
                     if (chat != null) {
-                        fullChat = accountInstance.getMessagesController().getChatFull(chat.id);
-                    }
-                    if (ChatObject.isChannel(chat) && (fullChat == null || fullChat.participants == null || fullChat.participants.participants == null || fullChat.participants.participants.isEmpty())) {
-                        final TLRPC.TL_channels_getParticipants req = new TLRPC.TL_channels_getParticipants();
-                        req.channel = accountInstance.getMessagesController().getInputChannel(chat.id);
-                        req.filter = new TLRPC.TL_channelParticipantsRecent();
-                        req.offset = 0;
-                        req.limit = 32;
-                        final TLRPC.Dialog finalDialog = dialog;
-                        compositeDisposable.add(sendRequest(req)
-                                .subscribe(response -> {
-                                    if (!(response instanceof TLRPC.TL_channels_channelParticipants)) {
-                                        requestsRunning.decrementAndGet();
-                                        synchronized (requestsRunning) {
-                                            requestsRunning.notifyAll();
-                                        }
-                                    } else {
-                                        connection.chat = getChatFromDialog(finalDialog, null, ((TLRPC.TL_channels_channelParticipants) response).users);
-                                        sendConnectionData(requestsRunning, exceptions, connection);
-                                    }
+                        requestsRunning.incrementAndGet();
+                        compositeDisposable.add(Utils.loadAllChatUsers(chat, accountInstance, compositeDisposable)
+                                .subscribe(users -> {
+                                    connection.chat = new ChatData(chat, users);
+                                    sendConnectionData(requestsRunning, exceptions, connection);
                                 }, error -> {
                                     requestsRunning.decrementAndGet();
                                     synchronized (requestsRunning) {
@@ -406,13 +357,7 @@ public class Circles implements NotificationCenter.NotificationCenterDelegate {
                                         requestsRunning.notifyAll();
                                     }
                                 }));
-                        continue;
-                    } else {
-                        connection.chat = getChatFromDialog(dialog, fullChat, null);
                     }
-                }
-
-                if (connection.user == null && connection.chat == null) {
                     continue;
                 }
 
@@ -468,28 +413,140 @@ public class Circles implements NotificationCenter.NotificationCenterDelegate {
                 }));
     }
 
-    private ChatData getChatFromDialog(TLRPC.Dialog dialog, TLRPC.ChatFull chatFull, ArrayList<TLRPC.User> chatParticipants) {
-        TLRPC.Chat chat = Utils.getDialogChat(dialog.id, accountInstance);
-        if (chat != null) {
-            Set<TLRPC.User> users = new HashSet<>();
-            if (chatParticipants == null || chatParticipants.isEmpty()) {
-                if (chatFull == null) {
-                    chatFull = accountInstance.getMessagesController().getChatFull(chat.id);
-                }
-                if (chatFull != null && chatFull.participants != null && chatFull.participants.participants != null) {
-                    for (TLRPC.ChatParticipant part : chatFull.participants.participants) {
-                        TLRPC.User user = accountInstance.getMessagesController().getUser(part.user_id);
-                        if (user != null) {
-                            users.add(user);
-                        }
-                    }
-                }
-            } else {
-                users.addAll(chatParticipants);
-            }
-            return new ChatData(chat, users);
+    private void sendMembers() {
+        if (circlesRequestInProgress || membersRequestInProgress) {
+            return;
         }
-        return null;
+
+        membersRequestInProgress = true;
+        final StringBuilder hash = new StringBuilder();
+        final Set<TLRPC.Dialog> allDialogs = new HashSet<>();
+        final Map<Long, Set<TLRPC.Dialog>> dialogsMap = Utils.mapDialogsToCircles(cachedCircles, accountInstance);
+        List<Long> circleIds = new ArrayList<>(dialogsMap.keySet());
+        Collections.sort(circleIds, null);
+        for (Long circleId : circleIds) {
+            if (circleId == CirclesConstants.DEFAULT_CIRCLE_ID_ARCHIVED || circleId == CirclesConstants.DEFAULT_CIRCLE_ID_PERSONAL) continue;
+            hash.append("c").append(circleId);
+            Set<TLRPC.Dialog> dialogs = dialogsMap.get(circleId);
+            List<Long> ids = new ArrayList<>();
+            if (dialogs != null) {
+                allDialogs.addAll(dialogs);
+                for (TLRPC.Dialog dialog : dialogs) {
+                    ids.add(dialog.id);
+                }
+                Collections.sort(ids, null);
+                for (Long id : ids) {
+                    hash.append("d").append(id);
+                }
+            }
+        }
+
+        if ((lastTimeMembersSent < (System.currentTimeMillis() - CirclesConstants.SEND_MEMBERS_INTERVAL)) || !(hash.toString().equals(lastMembersHash))) {
+              compositeDisposable.add(Single.create((SingleEmitter<Map<TLRPC.Dialog, Set<TLRPC.User>>> emitter) -> {
+                  final Map<TLRPC.Dialog, Set<TLRPC.User>> dialogUsers = new HashMap<>();
+                  final AtomicInteger requestsRunning = new AtomicInteger(0);
+                  final Set<Throwable> exceptions = new HashSet<>();
+
+                  for (TLRPC.Dialog dialog : allDialogs) {
+                      TLRPC.User user = Utils.getDialogUser(dialog.id, accountInstance);
+                      if (user != null) {
+                          Set<TLRPC.User> users = new HashSet<>();
+                          users.add(user);
+                          synchronized (dialogUsers) {
+                              dialogUsers.put(dialog, users);
+                          }
+                      } else {
+                          TLRPC.Chat chat = Utils.getDialogChat(dialog.id, accountInstance);
+                          if (chat != null) {
+                              requestsRunning.incrementAndGet();
+                              final TLRPC.Dialog finalDialog = dialog;
+                              compositeDisposable.add(Utils.loadAllChatUsers(chat, accountInstance, compositeDisposable)
+                                      .subscribe(users -> {
+                                          synchronized (dialogUsers) {
+                                              dialogUsers.put(finalDialog, users);
+                                          }
+                                          requestsRunning.decrementAndGet();
+                                          synchronized (requestsRunning) {
+                                              requestsRunning.notifyAll();
+                                          }
+                                      }, error -> {
+                                          requestsRunning.decrementAndGet();
+                                          synchronized (requestsRunning) {
+                                              exceptions.add(error);
+                                              requestsRunning.notifyAll();
+                                          }
+                                      }));
+                          }
+                      }
+                  }
+
+                  synchronized (requestsRunning) {
+                      while (requestsRunning.get() > 0 && !Thread.currentThread().isInterrupted()) {
+                          try {
+                              requestsRunning.wait();
+                          } catch (InterruptedException e) {
+                              break;
+                          }
+                      }
+                  }
+
+                  if (exceptions.isEmpty() && requestsRunning.get() <= 0) {
+                      emitter.onSuccess(dialogUsers);
+                  } else {
+                      emitter.onError(exceptions.isEmpty() ? null : exceptions.iterator().next());
+                  }
+              })
+              .subscribeOn(Schedulers.io())
+              .observeOn(Schedulers.io())
+              .subscribe(dialogUsers -> {
+                  ArrayList<ConnectionsState> connections = new ArrayList<>();
+                  for (Long circleId : dialogsMap.keySet()) {
+                      if (circleId == CirclesConstants.DEFAULT_CIRCLE_ID_ARCHIVED || circleId == CirclesConstants.DEFAULT_CIRCLE_ID_PERSONAL) continue;
+                      ConnectionsState connection = new ConnectionsState();
+                      connection.circleId = circleId;
+                      connection.peers = new ArrayList<>();
+                      Set<TLRPC.Dialog> dialogs = dialogsMap.get(circleId);
+                      if (dialogs != null && !dialogs.isEmpty()) {
+                          for (TLRPC.Dialog dialog : dialogs) {
+                              ChangeConnection peer = new ChangeConnection();
+
+                              TLRPC.Chat chat = Utils.getDialogChat(dialog.id, accountInstance);
+                              if (chat != null) {
+                                  peer.chat = new ChatData(chat, dialogUsers.get(dialog));
+                              } else {
+                                  Set<TLRPC.User> users = dialogUsers.get(dialog);
+                                  if (users == null || users.isEmpty()) continue;
+                                  peer.user = new UserData(users.iterator().next());
+                              }
+
+                              connection.peers.add(peer);
+                          }
+                      }
+                      connections.add(connection);
+                  }
+
+                  if (connections.isEmpty()) {
+                      lastTimeMembersSent = System.currentTimeMillis();
+                      lastMembersHash = hash.toString();
+                      membersRequestInProgress = false;
+                  } else {
+                      compositeDisposable.add(RetrofitHelper.service().sendMembers(preferences.getAuthToken(), connections)
+                              .observeOn(Schedulers.io())
+                              .subscribeOn(Schedulers.io())
+                              .subscribe(res -> {
+                                  lastTimeMembersSent = System.currentTimeMillis();
+                                  lastMembersHash = hash.toString();
+                                  membersRequestInProgress = false;
+                              }, error -> {
+                                  membersRequestInProgress = false;
+                              }));
+                  }
+              }, error -> {
+                  membersRequestInProgress = false;
+              }));
+        } else {
+            membersRequestInProgress = false;
+        }
     }
 
     private void handleNewBotMessages(ArrayList<MessageObject> messages) {
@@ -691,8 +748,8 @@ public class Circles implements NotificationCenter.NotificationCenterDelegate {
                     }
                     Map<Long, Set<TLRPC.Dialog>> dialogsMap = Utils.mapDialogsToCircles(circles, accountInstance);
                     cacheCircles(circlesList, dialogsMap);
-                    selectCurrentCircle(dialogsMap);
                     circlesRequestInProgress = false;
+                    selectCurrentCircle(dialogsMap);
                     if (listener != null) {
                         listener.onSuccess();
                     }
@@ -714,6 +771,10 @@ public class Circles implements NotificationCenter.NotificationCenterDelegate {
         selectCurrentCircle(Utils.mapDialogsToCircles(cachedCircles, accountInstance));
     }
 
+    public long getSelectedCircle() {
+        return preferences.getSelectedCircleId();
+    }
+
     public void createWorkspace(String circleName, @NonNull SuccessListener listener) {
         if (circleName == null || circleName.isEmpty()) {
             listener.onError(new RequestError(RequestError.ErrorCode.CIRCLE_NAME_IS_EMPTY));
@@ -729,7 +790,7 @@ public class Circles implements NotificationCenter.NotificationCenterDelegate {
         return dialog != null && dialog.folder_id != 1 && dialog.id != preferences.getBotPeerId() && !(dialog instanceof TLRPC.TL_dialogFolder && ((TLRPC.TL_dialogFolder) dialog).folder.id == 1) && !Utils.isSavedMessages(dialog.id, accountInstance);
     }
 
-    public void moveDialogs(@NonNull CircleData toCircle, @NonNull Collection<Long> dialogIds, @NonNull SuccessListener listener) {
+    public void moveDialogs(long fromCircleId, long toCircleId, @NonNull Collection<Long> dialogIds, @NonNull SuccessListener listener) {
         Logger.d("Moving "+dialogIds.size()+" dialogs");
         Set<TLRPC.Dialog> dialogsToMove = new HashSet<>();
         for (TLRPC.Dialog dialog : accountInstance.getMessagesController().getAllDialogs()) {
@@ -738,10 +799,10 @@ public class Circles implements NotificationCenter.NotificationCenterDelegate {
             }
         }
 
-        if (dialogsToMove.isEmpty()) {
+        if (dialogsToMove.isEmpty() || fromCircleId == toCircleId) {
             listener.onSuccess();
         } else {
-            compositeDisposable.add(changeConnection(toCircle, dialogsToMove)
+            compositeDisposable.add(changeConnection(fromCircleId, toCircleId, dialogsToMove)
                     .observeOn(AndroidSchedulers.mainThread())
                     .subscribe(success -> listener.onSuccess(), listener::onError));
         }
