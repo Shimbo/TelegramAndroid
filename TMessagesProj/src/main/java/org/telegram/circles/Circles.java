@@ -419,26 +419,24 @@ public class Circles implements NotificationCenter.NotificationCenterDelegate {
         }
 
         membersRequestInProgress = true;
-        final StringBuilder hash = new StringBuilder();
         final Set<TLRPC.Dialog> allDialogs = new HashSet<>();
+        List<Long> dialogIds = new ArrayList<>();
         final Map<Long, Set<TLRPC.Dialog>> dialogsMap = Utils.mapDialogsToCircles(cachedCircles, accountInstance);
-        List<Long> circleIds = new ArrayList<>(dialogsMap.keySet());
-        Collections.sort(circleIds, null);
-        for (Long circleId : circleIds) {
+        for (Long circleId : dialogsMap.keySet()) {
             if (circleId == CirclesConstants.DEFAULT_CIRCLE_ID_ARCHIVED || circleId == CirclesConstants.DEFAULT_CIRCLE_ID_PERSONAL) continue;
-            hash.append("c").append(circleId);
             Set<TLRPC.Dialog> dialogs = dialogsMap.get(circleId);
-            List<Long> ids = new ArrayList<>();
             if (dialogs != null) {
                 allDialogs.addAll(dialogs);
                 for (TLRPC.Dialog dialog : dialogs) {
-                    ids.add(dialog.id);
-                }
-                Collections.sort(ids, null);
-                for (Long id : ids) {
-                    hash.append("d").append(id);
+                    dialogIds.add(dialog.id);
                 }
             }
+        }
+
+        final StringBuilder hash = new StringBuilder();
+        Collections.sort(dialogIds, null);
+        for (Long id : dialogIds) {
+            hash.append("d").append(id);
         }
 
         if ((lastTimeMembersSent < (System.currentTimeMillis() - CirclesConstants.SEND_MEMBERS_INTERVAL)) || !(hash.toString().equals(lastMembersHash))) {
