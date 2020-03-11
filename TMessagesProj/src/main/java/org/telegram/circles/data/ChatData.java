@@ -15,8 +15,8 @@ public class ChatData implements Serializable {
         id = -1000000000000L - chat.id;
         title = chat.title;
 
+        this.users = new ArrayList<>();
         if (users != null && !users.isEmpty()) {
-            this.users = new ArrayList<>();
             for (TLRPC.User user : users) {
                 this.users.add(new UserData(user));
             }
