@@ -9,12 +9,12 @@ public final class RequestError extends Throwable {
     public final TLRPC.TL_error error;
     public final ErrorCode code;
 
-    RequestError(TLRPC.TL_error error) {
+    public RequestError(TLRPC.TL_error error) {
         this.error = error;
         code = ErrorCode.TLRPC;
     }
 
-    RequestError(ErrorCode error) {
+    public RequestError(ErrorCode error) {
         this.error = null;
         code = error;
     }
