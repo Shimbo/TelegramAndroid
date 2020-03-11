@@ -1,6 +1,7 @@
 package org.telegram.circles;
 
 import android.os.SystemClock;
+import android.view.View;
 
 import androidx.annotation.NonNull;
 
@@ -15,6 +16,7 @@ import org.telegram.circles.ui.WorkspaceSelector;
 import org.telegram.circles.utils.Logger;
 import org.telegram.circles.utils.Utils;
 import org.telegram.messenger.AccountInstance;
+import org.telegram.messenger.AndroidUtilities;
 import org.telegram.messenger.ApplicationLoader;
 import org.telegram.messenger.BuildConfig;
 import org.telegram.messenger.MessageObject;
@@ -635,27 +637,6 @@ public class Circles implements NotificationCenter.NotificationCenterDelegate {
         accountInstance.getContactsController().deleteUnknownAppAccounts();
     }
 
-    private String getCurrentCircleTitle() {
-        if (preferences.getSelectedCircleId() == CirclesConstants.DEFAULT_CIRCLE_ID_PERSONAL) {
-            return ApplicationLoader.applicationContext.getString(R.string.circles_personal);
-        } else if (preferences.getSelectedCircleId() == CirclesConstants.DEFAULT_CIRCLE_ID_ARCHIVED) {
-            return ApplicationLoader.applicationContext.getString(R.string.circles_archive);
-        }
-
-        String circleName = null;
-        synchronized (cachedCircles) {
-            for (CircleData c : cachedCircles) {
-                if (c.id == preferences.getSelectedCircleId()) {
-                    circleName = c.name;
-                    break;
-                }
-            }
-        }
-
-        return (circleName != null && !circleName.isEmpty()) ? circleName :
-                ApplicationLoader.applicationContext.getString(BuildConfig.DEBUG ? R.string.AppNameBeta : R.string.AppName);
-    }
-
 
 
     // PUBLIC API
@@ -702,9 +683,41 @@ public class Circles implements NotificationCenter.NotificationCenterDelegate {
         }
     }
 
-    public void updateDialogActionBarTitle(ActionBar actionBar) {
+    public void updateDialogActionBarTitle(final ActionBar actionBar) {
         if (actionBar != null) {
-            actionBar.setTitle(getCurrentCircleTitle());
+            String circleName = null;
+            if (preferences.getSelectedCircleId() == CirclesConstants.DEFAULT_CIRCLE_ID_PERSONAL) {
+                circleName = ApplicationLoader.applicationContext.getString(R.string.circles_personal);
+            } else if (preferences.getSelectedCircleId() == CirclesConstants.DEFAULT_CIRCLE_ID_ARCHIVED) {
+                circleName = ApplicationLoader.applicationContext.getString(R.string.circles_archive);
+            } else {
+                synchronized (cachedCircles) {
+                    for (CircleData c : cachedCircles) {
+                        if (c.id == preferences.getSelectedCircleId()) {
+                            circleName = c.name;
+                            break;
+                        }
+                    }
+                }
+            }
+
+            if (circleName == null) {
+                actionBar.setTitle(ApplicationLoader.applicationContext.getString(BuildConfig.DEBUG ? R.string.AppNameBeta : R.string.AppName));
+                actionBar.getTitleTextView().setRightDrawable(null);
+                actionBar.getTitleTextView().setDrawablePadding(AndroidUtilities.dp(4));
+                actionBar.getTitleTextView().setRightDrawableTopPadding(0);
+                actionBar.getTitleTextView().setOnClickListener(null);
+            } else {
+                actionBar.setTitle(circleName);
+                actionBar.getTitleTextView().setRightDrawable(R.drawable.ic_arrow_drop_down);
+                actionBar.getTitleTextView().setDrawablePadding(AndroidUtilities.dp(-1));
+                actionBar.getTitleTextView().setRightDrawableTopPadding(AndroidUtilities.dp(-1));
+                actionBar.getTitleTextView().setOnClickListener(view -> {
+                    if (actionBar.parentFragment != null) {
+                        showWorkspaceSelector(actionBar.parentFragment);
+                    }
+                });
+            }
         }
     }
 
