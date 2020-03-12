@@ -34,7 +34,7 @@ public final class Utils {
     }
 
     public static boolean isSystemUserMessage(String text) {
-        return text.startsWith("/start") || text.startsWith("/create");
+        return false; //text.startsWith("/start") || text.startsWith("/create");
     }
 
     public static TLRPC.User getDialogUser(long dialogId, AccountInstance accountInstance) {
