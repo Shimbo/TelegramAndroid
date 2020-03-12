@@ -157,7 +157,7 @@ public class Circles implements NotificationCenter.NotificationCenterDelegate {
         return count;
     }
 
-    private void selectCurrentCircle(Map<Long, Set<TLRPC.Dialog>> dialogsMap) {
+    private void selectCurrentCircle(Map<Long, Set<TLRPC.Dialog>> dialogsMap, boolean changedCircle) {
         long currentCircleId = preferences.getSelectedCircleId();
 
         if (currentCircleId == CirclesConstants.DEFAULT_CIRCLE_ID_ARCHIVED) return;
@@ -182,7 +182,7 @@ public class Circles implements NotificationCenter.NotificationCenterDelegate {
                 }
             }
         }
-        if (modifiedDialogs) {
+        if (modifiedDialogs || changedCircle) {
             accountInstance.getMessagesController().sortDialogs(null);
             accountInstance.getNotificationCenter().postNotificationName(NotificationCenter.dialogsNeedReload, true);
         }
@@ -754,7 +754,7 @@ public class Circles implements NotificationCenter.NotificationCenterDelegate {
                     Map<Long, Set<TLRPC.Dialog>> dialogsMap = Utils.mapDialogsToCircles(circles, accountInstance);
                     cacheCircles(circlesList, dialogsMap);
                     circlesRequestInProgress = false;
-                    selectCurrentCircle(dialogsMap);
+                    selectCurrentCircle(dialogsMap, false);
                     if (listener != null) {
                         listener.onSuccess();
                     }
@@ -767,13 +767,15 @@ public class Circles implements NotificationCenter.NotificationCenterDelegate {
     }
 
     public void setSelectedCircle(CircleData circle) {
+        boolean changedCircle = false;
         if (circle != null) {
             if (circle.circleType == CircleType.ARCHIVE) {
                 return;
             }
+            changedCircle = preferences.getSelectedCircleId() != circle.id;
             preferences.setSelectedCircleId(circle.id);
         }
-        selectCurrentCircle(Utils.mapDialogsToCircles(cachedCircles, accountInstance));
+        selectCurrentCircle(Utils.mapDialogsToCircles(cachedCircles, accountInstance), changedCircle);
     }
 
     public long getSelectedCircle() {
