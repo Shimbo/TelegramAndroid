@@ -1091,10 +1091,6 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
         item.setClearsTextOnSearchCollapse(false);
         item.setSearchFieldHint(LocaleController.getString("Search", R.string.Search));
         item.setContentDescription(LocaleController.getString("Search", R.string.Search));
-        if (folderId == 0) {
-            final ActionBarMenuItem workspacesItem = menu.addItem(3, R.drawable.input_bot2);
-            workspacesItem.setContentDescription(context.getString(R.string.circles_workspaces));
-        }
         if (onlySelect) {
             actionBar.setBackButtonImage(R.drawable.ic_ab_back);
             if (dialogsType == 3 && selectAlertString == null) {
@@ -1165,8 +1161,6 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
                     updatePasscodeButton();
                 } else if (id == 2) {
                     presentFragment(new ProxyListActivity());
-                } else if (id == 3) {
-                    org.telegram.circles.Circles.getInstance(currentAccount).showWorkspaceSelector(DialogsActivity.this);
                 } else if (id >= 10 && id < 10 + UserConfig.MAX_ACCOUNT_COUNT) {
                     if (getParentActivity() == null) {
                         return;
