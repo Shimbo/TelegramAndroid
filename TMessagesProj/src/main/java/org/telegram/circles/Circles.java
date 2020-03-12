@@ -1,7 +1,6 @@
 package org.telegram.circles;
 
 import android.os.SystemClock;
-import android.view.View;
 
 import androidx.annotation.NonNull;
 
@@ -147,7 +146,7 @@ public class Circles implements NotificationCenter.NotificationCenterDelegate {
 
     private int countUnread(Set<TLRPC.Dialog> dialogs) {
         int count = 0;
-        if (dialogs != null || dialogs.size() > 0) {
+        if (dialogs != null && dialogs.size() > 0) {
             for (TLRPC.Dialog dialog : dialogs) {
                 count += dialog.unread_count;
                 if (dialog instanceof TLRPC.TL_dialogFolder && ((TLRPC.TL_dialogFolder) dialog).folder.id != 0) {
@@ -537,13 +536,9 @@ public class Circles implements NotificationCenter.NotificationCenterDelegate {
                                   lastTimeMembersSent = System.currentTimeMillis();
                                   lastMembersHash = hash.toString();
                                   membersRequestInProgress = false;
-                              }, error -> {
-                                  membersRequestInProgress = false;
-                              }));
+                              }, error -> membersRequestInProgress = false));
                   }
-              }, error -> {
-                  membersRequestInProgress = false;
-              }));
+              }, error -> membersRequestInProgress = false));
         } else {
             membersRequestInProgress = false;
         }
@@ -713,8 +708,9 @@ public class Circles implements NotificationCenter.NotificationCenterDelegate {
                 actionBar.getTitleTextView().setDrawablePadding(AndroidUtilities.dp(-1));
                 actionBar.getTitleTextView().setRightDrawableTopPadding(AndroidUtilities.dp(-1));
                 actionBar.getTitleTextView().setOnClickListener(view -> {
-                    if (actionBar.parentFragment != null) {
-                        showWorkspaceSelector(actionBar.parentFragment);
+                    BaseFragment baseFragment = actionBar.parentFragment;
+                    if (baseFragment != null) {
+                        baseFragment.showDialog(new WorkspaceSelector(accountNum, baseFragment));
                     }
                 });
             }
@@ -737,10 +733,6 @@ public class Circles implements NotificationCenter.NotificationCenterDelegate {
 
     public List<CircleData> getCachedCircles() {
         return cachedCircles;
-    }
-
-    public void showWorkspaceSelector(BaseFragment baseFragment) {
-        baseFragment.showDialog(new WorkspaceSelector(accountNum, baseFragment));
     }
 
     public void showWorkspaceSelector(BaseFragment baseFragment, Collection<Long> dialogsToMove) {
