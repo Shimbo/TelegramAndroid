@@ -234,6 +234,7 @@ public class Circles implements NotificationCenter.NotificationCenterDelegate {
         }
 
         //send start request
+        newMessagesAwaiting.incrementAndGet();
         accountInstance.getSendMessagesHelper()
             .sendMessage("/start api", preferences.getBotPeerId(), null, null, false, null, null, null, true, 0);
         Logger.d("Sent bot /start api message to "+preferences.getBotPeerId());
@@ -243,7 +244,6 @@ public class Circles implements NotificationCenter.NotificationCenterDelegate {
             String latestToken = "";
 
             synchronized (botMessages) {
-                newMessagesAwaiting.incrementAndGet();
                 Logger.d("Waiting for bot response");
                 botMessages.wait(CirclesConstants.BOT_MESSAGE_WAIT_TIMEOUT);
 
@@ -260,8 +260,9 @@ public class Circles implements NotificationCenter.NotificationCenterDelegate {
                         }
                     }
                 }
-                newMessagesAwaiting.decrementAndGet();
             }
+
+            newMessagesAwaiting.decrementAndGet();
 
             if (!latestToken.isEmpty()) {
                 Logger.d("Received new token: "+latestToken);
@@ -284,18 +285,18 @@ public class Circles implements NotificationCenter.NotificationCenterDelegate {
             throw new IllegalStateException("Circles bot peer id not resolved yet");
         }
 
+        newMessagesAwaiting.incrementAndGet();
+        //send start request
+        accountInstance.getSendMessagesHelper()
+                .sendMessage("/create "+circleName, preferences.getBotPeerId(), null, null, false, null, null, null, true, 0);
+        Logger.d("Sent bot /create "+circleName+" message to "+preferences.getBotPeerId());
+
         //wait for incoming message
         return Single.create((emitter) -> {
-            //send start request
-            accountInstance.getSendMessagesHelper()
-                    .sendMessage("/create "+circleName, preferences.getBotPeerId(), null, null, false, null, null, null, true, 0);
-            Logger.d("Sent bot /create "+circleName+" message to "+preferences.getBotPeerId());
-
             int initialCountFromBot = 0;
             int newCountFromBot = 0;
 
             synchronized (botMessages) {
-                newMessagesAwaiting.incrementAndGet();
                 for (MessageObject message : botMessages) {
                     if (message.deleted || message.messageText == null) continue;
                     if (message.messageOwner.from_id == preferences.getBotPeerId()) {
@@ -312,8 +313,9 @@ public class Circles implements NotificationCenter.NotificationCenterDelegate {
                         newCountFromBot++;
                     }
                 }
-                newMessagesAwaiting.decrementAndGet();
             }
+
+            newMessagesAwaiting.decrementAndGet();
 
             if (initialCountFromBot != newCountFromBot) {
                 Logger.d("New workspace created");
@@ -560,7 +562,7 @@ public class Circles implements NotificationCenter.NotificationCenterDelegate {
                                 duplicatedMessage = true;
                             }
                         }
-                        if (!duplicatedMessage) {
+                        if (!duplicatedMessage && message.messageOwner.from_id == preferences.getBotPeerId()) {
                             hasNewMessages = true;
                         }
                         botMessages.add(message);
