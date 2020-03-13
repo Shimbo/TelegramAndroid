@@ -1,86 +1,66 @@
 {
   "project_info": {
-    "project_number": "760348033671",
-    "firebase_url": "https://tmessages2.firebaseio.com",
-    "project_id": "tmessages2",
-    "storage_bucket": "tmessages2.appspot.com"
+    "project_number": "429163783515",
+    "firebase_url": "https://telefrost-3f7d2.firebaseio.com",
+    "project_id": "telefrost-3f7d2",
+    "storage_bucket": "telefrost-3f7d2.appspot.com"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:760348033671:android:dc022572c167a16c",
-        "android_client_info": {
-          "package_name": "org.telefrost.messenger.beta"
-        }
-      },
-      "oauth_client": [
-        {
-          "client_id": "760348033671-jiv412evc1r36rl4k7vhl1ba83atdmot.apps.googleusercontent.com",
-          "client_type": 3
-        },
-        {
-          "client_id": "760348033671-7cj8o8gntcp2o052du67k1t0pi9frbso.apps.googleusercontent.com",
-          "client_type": 3
-        },
-        {
-          "client_id": "760348033671-2hh8ebmuflsnjoc0kldkfells9rhtfni.apps.googleusercontent.com",
-          "client_type": 3
-        }
-      ],
-      "api_key": [
-        {
-          "current_key": "AIzaSyAijSIM_t8bfdRrn2-mCumXRu37pPslqkU"
-        }
-      ],
-      "services": {
-        "analytics_service": {
-          "status": 1
-        },
-        "appinvite_service": {
-          "status": 1,
-          "other_platform_oauth_client": []
-        },
-        "ads_service": {
-          "status": 2
-        }
-      }
-    },
-    {
-      "client_info": {
-        "mobilesdk_app_id": "1:760348033671:android:f6afd7b67eae3860",
+        "mobilesdk_app_id": "1:429163783515:android:c6ff843879204d6364267e",
         "android_client_info": {
           "package_name": "org.telefrost.messenger"
         }
       },
       "oauth_client": [
         {
-          "client_id": "760348033671-jiv412evc1r36rl4k7vhl1ba83atdmot.apps.googleusercontent.com",
-          "client_type": 3
-        },
-        {
-          "client_id": "760348033671-7cj8o8gntcp2o052du67k1t0pi9frbso.apps.googleusercontent.com",
-          "client_type": 3
-        },
-        {
-          "client_id": "760348033671-2hh8ebmuflsnjoc0kldkfells9rhtfni.apps.googleusercontent.com",
+          "client_id": "429163783515-jd5i27f2jscrunvddi30jenn7ik5bid3.apps.googleusercontent.com",
           "client_type": 3
         }
       ],
       "api_key": [
         {
-          "current_key": "AIzaSyAijSIM_t8bfdRrn2-mCumXRu37pPslqkU"
+          "current_key": "AIzaSyDMRpTCv07HCccpa2GSk-DLh2k19hLKY0U"
         }
       ],
       "services": {
-        "analytics_service": {
-          "status": 1
-        },
         "appinvite_service": {
-          "status": 1,
-          "other_platform_oauth_client": []
-        },
-        "ads_service": {
-          "status": 2
+          "other_platform_oauth_client": [
+            {
+              "client_id": "429163783515-jd5i27f2jscrunvddi30jenn7ik5bid3.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:429163783515:android:f93664491d165dde64267e",
+        "android_client_info": {
+          "package_name": "org.telefrost.messenger.beta"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "429163783515-jd5i27f2jscrunvddi30jenn7ik5bid3.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDMRpTCv07HCccpa2GSk-DLh2k19hLKY0U"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "429163783515-jd5i27f2jscrunvddi30jenn7ik5bid3.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }
