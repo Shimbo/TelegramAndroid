@@ -20,6 +20,7 @@ import org.telegram.messenger.ApplicationLoader;
 import org.telegram.messenger.BuildConfig;
 import org.telegram.messenger.MessageObject;
 import org.telegram.messenger.NotificationCenter;
+import org.telegram.messenger.NotificationsController;
 import org.telegram.messenger.R;
 import org.telegram.messenger.UserConfig;
 import org.telegram.tgnet.ConnectionsManager;
@@ -146,9 +147,15 @@ public class Circles implements NotificationCenter.NotificationCenterDelegate {
 
     private int countUnread(Set<TLRPC.Dialog> dialogs) {
         int count = 0;
-        if (dialogs != null && dialogs.size() > 0) {
+        NotificationsController controller = accountInstance.getNotificationsController();
+        if (controller.showBadgeNumber && dialogs != null && dialogs.size() > 0) {
             for (TLRPC.Dialog dialog : dialogs) {
-                count += dialog.unread_count;
+                if (!controller.showBadgeMuted && accountInstance.getMessagesController().isDialogMuted(dialog.id)) {
+                    continue;
+                }
+                if (controller.showBadgeMessages) {
+                    count += dialog.unread_count;
+                }
                 if (dialog instanceof TLRPC.TL_dialogFolder && ((TLRPC.TL_dialogFolder) dialog).folder.id != 0) {
                     count += dialog.unread_mentions_count;
                 }
