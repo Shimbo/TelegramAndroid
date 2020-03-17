@@ -37,6 +37,7 @@ import android.view.ViewGroup;
 import android.view.Window;
 import android.view.WindowInsets;
 import android.view.WindowManager;
+import android.view.animation.DecelerateInterpolator;
 import android.view.animation.Interpolator;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
@@ -49,7 +50,6 @@ import org.telegram.messenger.NotificationCenter;
 import org.telegram.messenger.R;
 import org.telegram.messenger.UserConfig;
 import org.telegram.ui.Components.AnimationProperties;
-import org.telegram.ui.Components.CubicBezierInterpolator;
 import org.telegram.ui.Components.LayoutHelper;
 
 import java.util.ArrayList;
@@ -91,7 +91,7 @@ public class BottomSheet extends Dialog {
 
     private int touchSlop;
     private boolean useFastDismiss;
-    protected Interpolator openInterpolator = CubicBezierInterpolator.EASE_OUT_QUINT;
+    protected Interpolator openInterpolator = new DecelerateInterpolator();
 
     private TextView titleView;
 
@@ -226,7 +226,7 @@ public class BottomSheet extends Dialog {
                 currentAnimation = new AnimatorSet();
                 currentAnimation.playTogether(ObjectAnimator.ofFloat(containerView, "translationY", 0));
                 currentAnimation.setDuration((int) (150 * (translationY / AndroidUtilities.getPixelsInCM(0.8f, false))));
-                currentAnimation.setInterpolator(CubicBezierInterpolator.EASE_OUT);
+                currentAnimation.setInterpolator(new DecelerateInterpolator());
                 currentAnimation.addListener(new AnimatorListenerAdapter() {
                     @Override
                     public void onAnimationEnd(Animator animation) {
@@ -969,7 +969,7 @@ public class BottomSheet extends Dialog {
                 ObjectAnimator.ofInt(backDrawable, "alpha", 0)
         );
         currentSheetAnimation.setDuration(180);
-        currentSheetAnimation.setInterpolator(CubicBezierInterpolator.EASE_OUT);
+        currentSheetAnimation.setInterpolator(new DecelerateInterpolator());
         currentSheetAnimation.addListener(new AnimatorListenerAdapter() {
             @Override
             public void onAnimationEnd(Animator animation) {
@@ -1026,7 +1026,7 @@ public class BottomSheet extends Dialog {
             } else {
                 currentSheetAnimation.setDuration(180);
             }
-            currentSheetAnimation.setInterpolator(CubicBezierInterpolator.EASE_OUT);
+            currentSheetAnimation.setInterpolator(new DecelerateInterpolator());
             currentSheetAnimation.addListener(new AnimatorListenerAdapter() {
                 @Override
                 public void onAnimationEnd(Animator animation) {
