@@ -1,5 +1,6 @@
 package org.telegram.circles.ui;
 
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.res.ColorStateList;
 import android.graphics.drawable.Drawable;
@@ -26,6 +27,8 @@ import org.telegram.circles.CircleType;
 import org.telegram.circles.Circles;
 import org.telegram.circles.SuccessListener;
 import org.telegram.circles.data.CircleData;
+import org.telegram.circles.utils.Logger;
+import org.telegram.circles.utils.Utils;
 import org.telegram.messenger.AndroidUtilities;
 import org.telegram.messenger.R;
 import org.telegram.ui.ActionBar.AlertDialog;
@@ -58,30 +61,32 @@ public class WorkspaceSelector extends BasicBottomSheet {
         this.baseFragment = baseFragment;
         this.currentAccount = currentAccount;
         this.dialogsToMove = dialogsToMove;
-        loadData();
+        loadData(false);
     }
 
-    private void loadData() {
+    private void loadData(boolean doReload) {
         List<CircleData> circles = Circles.getInstance(currentAccount).getCachedCircles();
         if (!circles.isEmpty()) {
             hideProgress();
             adapter.setData(circles);
         }
-        Circles.getInstance(currentAccount).loadCircles(new SuccessListener(getContext(), null) {
-            @Override
-            public void onSuccess() {
-                hideProgress();
-                List<CircleData> data = Circles.getInstance(currentAccount).getCachedCircles();
-                adapter.setData(data);
-            }
+        if (doReload) {
+            Circles.getInstance(currentAccount).loadCircles(new SuccessListener(getContext(), null) {
+                @Override
+                public void onSuccess() {
+                    hideProgress();
+                    List<CircleData> data = Circles.getInstance(currentAccount).getCachedCircles();
+                    adapter.setData(data);
+                }
 
-            @Override
-            public String onError(Throwable error) {
-                String errorMessage = super.onError(error);
-                showError(errorMessage);
-                return errorMessage;
-            }
-        });
+                @Override
+                public String onError(Throwable error) {
+                    String errorMessage = super.onError(error);
+                    showError(errorMessage);
+                    return errorMessage;
+                }
+            });
+        }
     }
 
     void showProgress() {
@@ -150,7 +155,7 @@ public class WorkspaceSelector extends BasicBottomSheet {
             Circles.getInstance(currentAccount).createWorkspace(editText.getText().toString(), new SuccessListener(context, null) {
                 @Override
                 public void onSuccess() {
-                    loadData();
+                    loadData(true);
                 }
 
                 @Override
@@ -220,18 +225,23 @@ public class WorkspaceSelector extends BasicBottomSheet {
         private ImageView icon;
         private GradientDrawable iconBg;
 
+        @SuppressLint("NewApi")
         WorkspaceViewHolder(View view) {
             super(view);
 
             StateListDrawable itemBg = (StateListDrawable) view.getResources().getDrawable(R.drawable.circles_top_bottom_border_bg);
-            for (int i = 0; i < itemBg.getStateCount(); i++) {
-                Drawable item = itemBg.getStateDrawable(i);
-                if (item instanceof GradientDrawable) {
-                    ((GradientDrawable) item).setColor(Theme.getColor(Theme.key_windowBackgroundChecked));
-                } else if (item instanceof LayerDrawable) {
-                    ((GradientDrawable) ((LayerDrawable) item).getDrawable(0)).setColor(Theme.getColor(Theme.key_dialogBackgroundGray));
-                    ((GradientDrawable) ((LayerDrawable) item).getDrawable(1)).setColor(Theme.getColor(Theme.key_dialogBackground));
+            try {
+                for (int i = 0; i < itemBg.getStateCount(); i++) {
+                    Drawable item = itemBg.getStateDrawable(i);
+                    if (item instanceof GradientDrawable) {
+                        ((GradientDrawable) item).setColor(Theme.getColor(Theme.key_windowBackgroundChecked));
+                    } else if (item instanceof LayerDrawable) {
+                        ((GradientDrawable) ((LayerDrawable) item).getDrawable(0)).setColor(Theme.getColor(Theme.key_dialogBackgroundGray));
+                        ((GradientDrawable) ((LayerDrawable) item).getDrawable(1)).setColor(Theme.getColor(Theme.key_dialogBackground));
+                    }
                 }
+            } catch (Exception e) {
+                Logger.e(e);
             }
             view.setBackground(itemBg);
 
