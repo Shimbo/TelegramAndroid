@@ -207,6 +207,15 @@ public class Circles implements NotificationCenter.NotificationCenterDelegate {
         sendMembers();
     }
 
+    private void updateCounters() {
+        synchronized (cachedCircles) {
+            Map<Long, Set<TLRPC.Dialog>> dialogsMap = Utils.mapDialogsToCircles(cachedCircles, accountInstance);
+            for (CircleData circle : cachedCircles) {
+                circle.counter = countUnread(dialogsMap.get(circle.id));
+            }
+        }
+    }
+
     private Single<Object> lookupBotPeerId() {
         return Single.create((emitter) -> {
             TLRPC.TL_contacts_search req = new TLRPC.TL_contacts_search();
@@ -719,6 +728,7 @@ public class Circles implements NotificationCenter.NotificationCenterDelegate {
                 actionBar.getTitleTextView().setOnClickListener(view -> {
                     BaseFragment baseFragment = actionBar.parentFragment;
                     if (baseFragment != null) {
+                        updateCounters();
                         baseFragment.showDialog(new WorkspaceSelector(accountNum, baseFragment));
                     }
                 });
@@ -745,6 +755,7 @@ public class Circles implements NotificationCenter.NotificationCenterDelegate {
     }
 
     public void showWorkspaceSelector(BaseFragment baseFragment, Collection<Long> dialogsToMove) {
+        updateCounters();
         baseFragment.showDialog(new WorkspaceSelector(accountNum, baseFragment, dialogsToMove));
     }
 
@@ -753,17 +764,28 @@ public class Circles implements NotificationCenter.NotificationCenterDelegate {
         compositeDisposable.add(RetrofitHelper.service().getCircles(preferences.getAuthToken())
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribeOn(Schedulers.io())
-                .subscribe(circlesList -> {
-                    List<CircleData> circles = new ArrayList<>();
-                    if (circlesList != null && circlesList.circles != null) {
-                        circles.addAll(Arrays.asList(circlesList.circles));
-                    }
-                    Map<Long, Set<TLRPC.Dialog>> dialogsMap = Utils.mapDialogsToCircles(circles, accountInstance);
-                    cacheCircles(circlesList, dialogsMap);
-                    circlesRequestInProgress = false;
-                    selectCurrentCircle(dialogsMap, false);
-                    if (listener != null) {
-                        listener.onSuccess();
+                .subscribe(circlesListResponse -> {
+                    if (circlesListResponse.isSuccessful()) {
+                        CirclesList circlesList = circlesListResponse.body();
+                        List<CircleData> circles = new ArrayList<>();
+                        if (circlesList != null && circlesList.circles != null) {
+                            circles.addAll(Arrays.asList(circlesList.circles));
+                        }
+                        Map<Long, Set<TLRPC.Dialog>> dialogsMap = Utils.mapDialogsToCircles(circles, accountInstance);
+                        cacheCircles(circlesList, dialogsMap);
+                        circlesRequestInProgress = false;
+                        selectCurrentCircle(dialogsMap, false);
+                        if (listener != null) {
+                            listener.onSuccess();
+                        }
+                    } else {
+                        if (circlesListResponse.code() == 401) {
+                            accountInstance.getMessagesController().performLogout(1);
+                        }
+                        circlesRequestInProgress = false;
+                        if (listener != null) {
+                            listener.onError(new Throwable(circlesListResponse.message()));
+                        }
                     }
                 }, error -> {
                     circlesRequestInProgress = false;
@@ -783,6 +805,7 @@ public class Circles implements NotificationCenter.NotificationCenterDelegate {
             preferences.setSelectedCircleId(circle.id);
         }
         selectCurrentCircle(Utils.mapDialogsToCircles(cachedCircles, accountInstance), changedCircle);
+        updateCounters();
     }
 
     public long getSelectedCircle() {

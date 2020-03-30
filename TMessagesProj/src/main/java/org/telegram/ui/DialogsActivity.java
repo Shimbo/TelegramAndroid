@@ -178,10 +178,10 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
     private NumberTextView selectedDialogsCountTextView;
     private ArrayList<View> actionModeViews = new ArrayList<>();
     private ActionBarMenuItem deleteItem;
-    private ActionBarMenuItem pinItem;
+    private ActionBarMenuSubItem pinItem;
     private ActionBarMenuItem muteItem;
     private ActionBarMenuSubItem archiveItem;
-    private ActionBarMenuSubItem workspaceItem;
+    private ActionBarMenuItem workspaceItem;
     private ActionBarMenuSubItem clearItem;
     private ActionBarMenuSubItem readItem;
     private ActionBarMenuSubItem blockItem;
@@ -1193,17 +1193,19 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
         actionMode.addView(selectedDialogsCountTextView, LayoutHelper.createLinear(0, LayoutHelper.MATCH_PARENT, 1.0f, 72, 0, 0, 0));
         selectedDialogsCountTextView.setOnTouchListener((v, event) -> true);
 
-        pinItem = actionMode.addItemWithWidth(pin, R.drawable.msg_pin, AndroidUtilities.dp(54));
+
+        workspaceItem = actionMode.addItemWithWidth(workspace, R.drawable.input_bot2, AndroidUtilities.dp(54));
+        workspaceItem.setContentDescription(context.getString(R.string.circles_move_to_workspace));
         muteItem = actionMode.addItemWithWidth(mute, R.drawable.msg_archive, AndroidUtilities.dp(54));
         deleteItem = actionMode.addItemWithWidth(delete, R.drawable.msg_delete, AndroidUtilities.dp(54), LocaleController.getString("Delete", R.string.Delete));
         ActionBarMenuItem otherItem = actionMode.addItemWithWidth(0, R.drawable.ic_ab_other, AndroidUtilities.dp(54), LocaleController.getString("AccDescrMoreOptions", R.string.AccDescrMoreOptions));
+        pinItem = otherItem.addSubItem(pin, R.drawable.msg_pin, LocaleController.getString("PinToTop", R.string.PinToTop));
         archiveItem = otherItem.addSubItem(archive, R.drawable.msg_archive, LocaleController.getString("Archive", R.string.Archive));
-        workspaceItem = otherItem.addSubItem(workspace, R.drawable.input_bot2, context.getString(R.string.circles_move_to_workspace));
         readItem = otherItem.addSubItem(read, R.drawable.msg_markread, LocaleController.getString("MarkAsRead", R.string.MarkAsRead));
         clearItem = otherItem.addSubItem(clear, R.drawable.msg_clear, LocaleController.getString("ClearHistory", R.string.ClearHistory));
         blockItem = otherItem.addSubItem(block, R.drawable.msg_block, LocaleController.getString("BlockUser", R.string.BlockUser));
 
-        actionModeViews.add(pinItem);
+        actionModeViews.add(workspaceItem);
         actionModeViews.add(muteItem);
         actionModeViews.add(deleteItem);
         actionModeViews.add(otherItem);
