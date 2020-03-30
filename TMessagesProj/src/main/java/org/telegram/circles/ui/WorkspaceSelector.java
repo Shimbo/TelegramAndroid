@@ -28,7 +28,6 @@ import org.telegram.circles.Circles;
 import org.telegram.circles.SuccessListener;
 import org.telegram.circles.data.CircleData;
 import org.telegram.circles.utils.Logger;
-import org.telegram.circles.utils.Utils;
 import org.telegram.messenger.AndroidUtilities;
 import org.telegram.messenger.R;
 import org.telegram.ui.ActionBar.AlertDialog;
@@ -221,9 +220,10 @@ public class WorkspaceSelector extends BasicBottomSheet {
     }
 
     private class WorkspaceViewHolder extends RecyclerListView.Holder {
-        private TextView litera, name, counter;
-        private ImageView icon;
+        private TextView litera, name, counter, proIndicator;
+        private ImageView icon, lock;
         private GradientDrawable iconBg;
+        private static final float lockedAlpha = 0.6f;
 
         @SuppressLint("NewApi")
         WorkspaceViewHolder(View view) {
@@ -249,6 +249,11 @@ public class WorkspaceSelector extends BasicBottomSheet {
             iconBg = (GradientDrawable) icon.getResources().getDrawable(R.drawable.circles_workspace_gray_bg).mutate();
             iconBg.setColor(Theme.getColor(Theme.key_avatar_backgroundArchived));
 
+            lock = view.findViewById(R.id.lock);
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                lock.setImageTintList(ColorStateList.valueOf(Theme.getColor(Theme.key_chats_name)));
+            }
+
             litera = view.findViewById(R.id.litera);
             GradientDrawable literaBg = (GradientDrawable) litera.getResources().getDrawable(R.drawable.circles_workspace_blue_bg).mutate();
             literaBg.setColor(Theme.getColor(Theme.key_avatar_backgroundSaved));
@@ -261,6 +266,8 @@ public class WorkspaceSelector extends BasicBottomSheet {
             counterBg.setColor(Theme.getColor(Theme.key_chats_unreadCounter));
             counter.setBackground(counterBg);
             counter.setTextColor(Theme.getColor(Theme.key_chats_unreadCounterText));
+
+            proIndicator = view.findViewById(R.id.pro_indicator);
         }
 
         void bind(final CircleData circle) {
@@ -273,7 +280,10 @@ public class WorkspaceSelector extends BasicBottomSheet {
                 name.setText(R.string.circles_create);
                 name.setTextColor(Theme.getColor(Theme.key_chat_messageLinkIn));
 
+                lock.setVisibility(View.GONE);
                 counter.setVisibility(View.GONE);
+                proIndicator.setVisibility(View.GONE);
+                name.setAlpha(1f);
                 itemView.setOnClickListener( v -> {
                     showCreateNewWorkspaceDialog();
                 });
@@ -284,6 +294,7 @@ public class WorkspaceSelector extends BasicBottomSheet {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
                     icon.setImageTintList(ColorStateList.valueOf(Theme.getColor(Theme.key_avatar_text)));
                 }
+                String circleName = "";
                 switch (circle.circleType) {
                     case PERSONAL:
                     case ARCHIVE:
@@ -293,7 +304,7 @@ public class WorkspaceSelector extends BasicBottomSheet {
                         icon.setPadding(padding, padding, padding, padding);
                         icon.setBackground(iconBg);
                         icon.setImageResource(circle.circleType == CircleType.PERSONAL ? R.drawable.circles_personal : R.drawable.circles_archive);
-                        name.setText(circle.circleType == CircleType.PERSONAL ? R.string.circles_personal : R.string.circles_archive);
+                        circleName = itemView.getContext().getString(circle.circleType == CircleType.PERSONAL ? R.string.circles_personal : R.string.circles_archive);
                         break;
                     case WORKSPACE:
                         icon.setVisibility(View.GONE);
@@ -304,14 +315,28 @@ public class WorkspaceSelector extends BasicBottomSheet {
                             l += parts[1].substring(0, 1);
                         }
                         litera.setText(l.toUpperCase());
-                        name.setText(circle.name);
+                        circleName = circle.name;
                         break;
                 }
-
+                lock.setVisibility(circle.isLocked() ? View.VISIBLE : View.GONE);
+                proIndicator.setVisibility(!circle.isLocked() && circle.isPaid() ? View.VISIBLE : View.GONE);
+                if (circle.isLocked()) {
+                    name.setAlpha(lockedAlpha);
+                    lock.setAlpha(lockedAlpha);
+                    litera.setAlpha(lockedAlpha);
+                } else {
+                    name.setAlpha(1f);
+                    lock.setAlpha(1f);
+                    litera.setAlpha(1f);
+                }
+                name.setText(circleName);
                 name.setTextColor(Theme.getColor(Theme.key_chats_name));
                 counter.setText(String.valueOf(circle.counter));
                 counter.setVisibility(circle.counter > 0 ? View.VISIBLE : View.GONE);
                 itemView.setOnClickListener( v -> {
+                    if (dialogsToMove != null && circle.isLocked()) {
+                        return;
+                    }
                     long currentCircleId = Circles.getInstance(currentAccount).getSelectedCircle();
                     Circles.getInstance(currentAccount).setSelectedCircle(circle);
                     if (circle.circleType == CircleType.ARCHIVE) {
