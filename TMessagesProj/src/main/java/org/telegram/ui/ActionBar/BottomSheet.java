@@ -864,8 +864,8 @@ public class BottomSheet extends Dialog {
             currentSheetAnimation.playTogether(
                     ObjectAnimator.ofFloat(containerView, View.TRANSLATION_Y, 0),
                     ObjectAnimator.ofInt(backDrawable, AnimationProperties.COLOR_DRAWABLE_ALPHA, dimBehind ? 51 : 0));
-            currentSheetAnimation.setDuration(400);
-            currentSheetAnimation.setStartDelay(20);
+            currentSheetAnimation.setDuration(150);
+            currentSheetAnimation.setStartDelay(0);
             currentSheetAnimation.setInterpolator(openInterpolator);
             currentSheetAnimation.addListener(new AnimatorListenerAdapter() {
                 @Override
