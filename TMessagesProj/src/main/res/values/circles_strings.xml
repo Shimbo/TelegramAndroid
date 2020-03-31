@@ -8,6 +8,8 @@
     <string name="circles_personal">Personal</string>
     <string name="circles_archive">Archived Chats</string>
 
+    <string name="circles_pro">Pro</string>
+
     <string name="new_circle">New workspace</string>
     <string name="circle_name">Workspace name</string>
     <string name="circle_create">Create</string>
