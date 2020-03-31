@@ -650,6 +650,18 @@ public class Circles implements NotificationCenter.NotificationCenterDelegate {
         accountInstance.getContactsController().deleteUnknownAppAccounts();
     }
 
+    private void setSelectedCircleId(Long circleId) {
+        boolean changedCircle = false;
+        if (circleId != null) {
+            if (circleId == CirclesConstants.DEFAULT_CIRCLE_ID_ARCHIVED) {
+                return;
+            }
+            changedCircle = preferences.getSelectedCircleId() != circleId;
+            preferences.setSelectedCircleId(circleId);
+        }
+        selectCurrentCircle(Utils.mapDialogsToCircles(cachedCircles, accountInstance), changedCircle);
+        updateCounters();
+    }
 
 
     // PUBLIC API
@@ -798,16 +810,33 @@ public class Circles implements NotificationCenter.NotificationCenterDelegate {
     }
 
     public void setSelectedCircle(CircleData circle) {
-        boolean changedCircle = false;
-        if (circle != null) {
-            if (circle.circleType == CircleType.ARCHIVE) {
-                return;
-            }
-            changedCircle = preferences.getSelectedCircleId() != circle.id;
-            preferences.setSelectedCircleId(circle.id);
+        setSelectedCircleId(circle == null ? null : circle.id);
+    }
+
+    public void openedChatFromPush(int pushUserId, int pushChatId, int pushEncId) {
+        Long dialogId = null;
+        if (pushUserId != 0) {
+            dialogId = (long) pushUserId;
+        } else if (pushChatId != 0) {
+            dialogId = - (long) pushChatId;
+        } else if (pushEncId != 0) {
+            dialogId = ((long) pushEncId) << 32;
         }
-        selectCurrentCircle(Utils.mapDialogsToCircles(cachedCircles, accountInstance), changedCircle);
-        updateCounters();
+
+        if (dialogId != null) {
+            Map<Long, Set<TLRPC.Dialog>> dialogsMap = Utils.mapDialogsToCircles(cachedCircles, accountInstance);
+            for (Long circleId : dialogsMap.keySet()) {
+                Set<TLRPC.Dialog> dialogs = dialogsMap.get(circleId);
+                if (dialogs != null) {
+                    for (TLRPC.Dialog dialog : dialogs) {
+                        if (dialog.id == dialogId) {
+                            setSelectedCircleId(circleId);
+                            return;
+                        }
+                    }
+                }
+            }
+        }
     }
 
     public long getSelectedCircle() {
