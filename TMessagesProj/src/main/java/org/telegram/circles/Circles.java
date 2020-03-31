@@ -699,6 +699,7 @@ public class Circles implements NotificationCenter.NotificationCenterDelegate {
     public void updateDialogActionBarTitle(final ActionBar actionBar) {
         if (actionBar != null) {
             String circleName = null;
+            boolean isLocked = false;
             if (preferences.getSelectedCircleId() == CirclesConstants.DEFAULT_CIRCLE_ID_PERSONAL) {
                 circleName = ApplicationLoader.applicationContext.getString(R.string.circles_personal);
             } else if (preferences.getSelectedCircleId() == CirclesConstants.DEFAULT_CIRCLE_ID_ARCHIVED) {
@@ -708,6 +709,7 @@ public class Circles implements NotificationCenter.NotificationCenterDelegate {
                     for (CircleData c : cachedCircles) {
                         if (c.id == preferences.getSelectedCircleId()) {
                             circleName = c.name;
+                            isLocked = c.isLocked();
                             break;
                         }
                     }
@@ -722,7 +724,7 @@ public class Circles implements NotificationCenter.NotificationCenterDelegate {
                 actionBar.getTitleTextView().setOnClickListener(null);
             } else {
                 actionBar.setTitle(circleName);
-                actionBar.getTitleTextView().setRightDrawable(R.drawable.ic_arrow_drop_down);
+                actionBar.getTitleTextView().setRightDrawable(isLocked ? R.drawable.ic_arrow_drop_down_locked : R.drawable.ic_arrow_drop_down);
                 actionBar.getTitleTextView().setDrawablePadding(AndroidUtilities.dp(-1));
                 actionBar.getTitleTextView().setRightDrawableTopPadding(AndroidUtilities.dp(-1));
                 actionBar.getTitleTextView().setOnClickListener(view -> {
@@ -824,6 +826,17 @@ public class Circles implements NotificationCenter.NotificationCenterDelegate {
     }
 
     public boolean canMoveDialog(TLRPC.Dialog dialog) {
+        long circleId = getSelectedCircle();
+        synchronized (cachedCircles) {
+            for (CircleData circle : cachedCircles) {
+                if (circle.id == circleId) {
+                    if (circle.isLocked()) {
+                        return false;
+                    }
+                    break;
+                }
+            }
+        }
         return dialog != null && dialog.folder_id != 1 && dialog.id != preferences.getBotPeerId() && !(dialog instanceof TLRPC.TL_dialogFolder && ((TLRPC.TL_dialogFolder) dialog).folder.id == 1) && !Utils.isSavedMessages(dialog.id, accountInstance);
     }
 
