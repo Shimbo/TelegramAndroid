@@ -6,7 +6,9 @@ import org.telegram.circles.CirclesConstants;
 import org.telegram.circles.RequestError;
 import org.telegram.circles.data.CircleData;
 import org.telegram.messenger.AccountInstance;
+import org.telegram.messenger.AndroidUtilities;
 import org.telegram.messenger.ChatObject;
+import org.telegram.messenger.MessagesController;
 import org.telegram.messenger.UserObject;
 import org.telegram.tgnet.TLObject;
 import org.telegram.tgnet.TLRPC;
@@ -196,6 +198,58 @@ public final class Utils {
             }));
     }
 
+    public static Single<Object> joinChannel(@NonNull String channelHandle, @NonNull AccountInstance accountInstance, @NonNull CompositeDisposable compositeDisposable) {
+        return Single.create((SingleEmitter<Object> emitter) -> {
+            TLRPC.TL_contacts_search req = new TLRPC.TL_contacts_search();
+            req.q = channelHandle;
+            req.limit = 10;
+            compositeDisposable.add(Utils.sendRequest(req, accountInstance)
+                    .subscribe(response -> {
+                        TLRPC.TL_contacts_found res = (TLRPC.TL_contacts_found) response;
+                        Logger.d("News found users "+ res.users);
+                        Logger.d("News found chats "+ res.chats);
+                        Logger.d("News found results "+ res.results);
+                        if (res.chats != null) {
+                            String newsChannelUsername = channelHandle.replaceFirst("@", "");
+                            for (TLRPC.Chat chat : res.chats) {
+                                Logger.d("News found chat "+ chat.title + " :: "+chat.username+" - "+chat.id);
+                                if (newsChannelUsername.equals(chat.username)) {
+                                    Logger.d("News found - subscribing");
+
+                                    final TLRPC.TL_channels_joinChannel joinReq = new TLRPC.TL_channels_joinChannel();
+                                    joinReq.channel = MessagesController.getInputChannel(chat);
+                                    compositeDisposable.add(Utils.sendRequest(joinReq, accountInstance)
+                                            .subscribe(joinResponse -> {
+                                                boolean hasJoinMessage = false;
+                                                TLRPC.Updates updates = (TLRPC.Updates) joinResponse;
+                                                for (int a = 0; a < updates.updates.size(); a++) {
+                                                    TLRPC.Update update = updates.updates.get(a);
+                                                    if (update instanceof TLRPC.TL_updateNewChannelMessage) {
+                                                        if (((TLRPC.TL_updateNewChannelMessage) update).message.action instanceof TLRPC.TL_messageActionChatAddUser) {
+                                                            hasJoinMessage = true;
+                                                            break;
+                                                        }
+                                                    }
+                                                }
+                                                accountInstance.getMessagesController().processUpdates(updates, false);
+                                                if (!hasJoinMessage) {
+                                                    accountInstance.getMessagesController().generateJoinMessage(chat.id, true);
+                                                }
+                                                AndroidUtilities.runOnUIThread(() -> accountInstance.getMessagesController().loadFullChat(chat.id, 0, true), 1000);
+                                                accountInstance.getMessagesStorage().updateDialogsWithDeletedMessages(new ArrayList<>(), null, true, chat.id);
+                                                emitter.onSuccess(channelHandle);
+                                            }, emitter::onError));
+                                    return;
+                                }
+                            }
+                        }
+                        emitter.onError(new RequestError(RequestError.ErrorCode.EMPTY_RESPONSE));
+                    }, emitter::onError)
+            );
+        })
+        .subscribeOn(Schedulers.io())
+        .observeOn(Schedulers.io());
+    }
 
     private Utils() {}
 }

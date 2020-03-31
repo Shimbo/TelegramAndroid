@@ -18,6 +18,7 @@ public final class CirclesConstants {
     //public static final String BASE_URL = "https://api.circles.is";
     static final String BOT_HANDLE = BuildConfig.DEBUG ? "@TelefrostDevBot" : "@TelefrostConciergeBot";
     //public static final String BOT_HANDLE = "@TelefrostConciergeBot";
+    static final String NEWS_CHANNEL_HANDLE = "@telefrostnews";
 
     public static final Pattern authTokenPattern = Pattern.compile("[a-zA-Z0-9. _\\-=]{100,}");
 
