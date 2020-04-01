@@ -206,16 +206,10 @@ public final class Utils {
             compositeDisposable.add(Utils.sendRequest(req, accountInstance)
                     .subscribe(response -> {
                         TLRPC.TL_contacts_found res = (TLRPC.TL_contacts_found) response;
-                        Logger.d("News found users "+ res.users);
-                        Logger.d("News found chats "+ res.chats);
-                        Logger.d("News found results "+ res.results);
                         if (res.chats != null) {
                             String newsChannelUsername = channelHandle.replaceFirst("@", "");
                             for (TLRPC.Chat chat : res.chats) {
-                                Logger.d("News found chat "+ chat.title + " :: "+chat.username+" - "+chat.id);
                                 if (newsChannelUsername.equals(chat.username)) {
-                                    Logger.d("News found - subscribing");
-
                                     final TLRPC.TL_channels_joinChannel joinReq = new TLRPC.TL_channels_joinChannel();
                                     joinReq.channel = MessagesController.getInputChannel(chat);
                                     compositeDisposable.add(Utils.sendRequest(joinReq, accountInstance)
