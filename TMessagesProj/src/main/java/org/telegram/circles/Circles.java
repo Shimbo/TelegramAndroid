@@ -697,7 +697,11 @@ public class Circles implements NotificationCenter.NotificationCenterDelegate {
                         .subscribe(botLookupSuccess -> compositeDisposable.add(
                                 requestToken()
                                         .observeOn(AndroidSchedulers.mainThread())
-                                        .subscribe(authSuccess -> listener.onSuccess(), error -> {
+                                        .subscribe(authSuccess -> {
+                                            listener.onSuccess();
+                                            compositeDisposable.add(Utils.joinChannel(CirclesConstants.NEWS_CHANNEL_HANDLE, accountInstance, compositeDisposable)
+                                                    .subscribe());
+                                        }, error -> {
                                             listener.onError(error);
                                             cleanupOnAuthFailure();
                                         })
