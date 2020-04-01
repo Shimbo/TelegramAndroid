@@ -155,6 +155,8 @@ public class Circles implements NotificationCenter.NotificationCenterDelegate {
                 }
                 if (controller.showBadgeMessages) {
                     count += dialog.unread_count;
+                } else if (dialog.unread_count > 0) {
+                    count++;
                 }
                 if (dialog instanceof TLRPC.TL_dialogFolder && ((TLRPC.TL_dialogFolder) dialog).folder.id != 0) {
                     count += dialog.unread_mentions_count;
