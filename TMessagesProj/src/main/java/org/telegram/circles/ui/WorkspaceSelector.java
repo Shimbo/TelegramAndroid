@@ -2,11 +2,13 @@ package org.telegram.circles.ui;
 
 import android.annotation.SuppressLint;
 import android.content.Context;
+import android.content.Intent;
 import android.content.res.ColorStateList;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.GradientDrawable;
 import android.graphics.drawable.LayerDrawable;
 import android.graphics.drawable.StateListDrawable;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.view.Gravity;
@@ -28,6 +30,7 @@ import org.telegram.circles.Circles;
 import org.telegram.circles.SuccessListener;
 import org.telegram.circles.data.CircleData;
 import org.telegram.circles.utils.Logger;
+import org.telegram.circles.utils.Utils;
 import org.telegram.messenger.AndroidUtilities;
 import org.telegram.messenger.R;
 import org.telegram.ui.ActionBar.AlertDialog;
@@ -221,7 +224,7 @@ public class WorkspaceSelector extends BasicBottomSheet {
 
     private class WorkspaceViewHolder extends RecyclerListView.Holder {
         private TextView litera, name, counter, proIndicator;
-        private ImageView icon, lock;
+        private ImageView icon, lock, settings;
         private GradientDrawable iconBg;
         private static final float lockedAlpha = 0.6f;
 
@@ -254,6 +257,11 @@ public class WorkspaceSelector extends BasicBottomSheet {
                 lock.setImageTintList(ColorStateList.valueOf(Theme.getColor(Theme.key_chats_name)));
             }
 
+            settings = view.findViewById(R.id.settings);
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                settings.setImageTintList(ColorStateList.valueOf(Theme.getColor(Theme.key_chats_name)));
+            }
+
             litera = view.findViewById(R.id.litera);
             GradientDrawable literaBg = (GradientDrawable) litera.getResources().getDrawable(R.drawable.circles_workspace_blue_bg).mutate();
             literaBg.setColor(Theme.getColor(Theme.key_avatar_backgroundSaved));
@@ -283,6 +291,7 @@ public class WorkspaceSelector extends BasicBottomSheet {
                 lock.setVisibility(View.GONE);
                 counter.setVisibility(View.GONE);
                 proIndicator.setVisibility(View.GONE);
+                settings.setVisibility(View.GONE);
                 name.setAlpha(1f);
                 itemView.setOnClickListener( v -> {
                     showCreateNewWorkspaceDialog();
@@ -333,6 +342,7 @@ public class WorkspaceSelector extends BasicBottomSheet {
                 name.setTextColor(Theme.getColor(Theme.key_chats_name));
                 counter.setText(String.valueOf(circle.counter));
                 counter.setVisibility(circle.counter > 0 ? View.VISIBLE : View.GONE);
+                settings.setVisibility(dialogsToMove != null ? View.GONE : circle.settingsUrl == null || circle.settingsUrl.isEmpty() ? View.INVISIBLE : View.VISIBLE);
                 itemView.setOnClickListener( v -> {
                     if (dialogsToMove != null && circle.isLocked()) {
                         return;
@@ -360,6 +370,20 @@ public class WorkspaceSelector extends BasicBottomSheet {
                         });
                     } else {
                         dismiss();
+                    }
+                });
+
+                settings.setOnClickListener( v -> {
+                    String url = circle.settingsUrl;
+                    if (url != null && !url.isEmpty()) {
+                        try {
+                            baseFragment.getParentActivity().startActivity(new Intent(
+                                    Intent.ACTION_VIEW,
+                                    Uri.parse(url)
+                            ));
+                        } catch (Exception e) {
+                            Logger.e(e);
+                        }
                     }
                 });
             }

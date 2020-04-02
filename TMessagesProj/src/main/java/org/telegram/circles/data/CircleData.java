@@ -1,5 +1,7 @@
 package org.telegram.circles.data;
 
+import com.google.gson.annotations.SerializedName;
+
 import org.telegram.circles.CircleType;
 import org.telegram.circles.CirclesConstants;
 
@@ -13,6 +15,8 @@ public class CircleData implements Serializable {
     public String name;
     public Integer role;
     public String tier;
+    @SerializedName("settings_url")
+    public String settingsUrl;
     public ArrayList<Long> peers;
     public ArrayList<Long> members;
 
