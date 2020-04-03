@@ -197,7 +197,8 @@ public class ActionBar extends FrameLayout {
                 textPaint.getFontMetricsInt(fontMetricsInt);
                 textPaint.getTextBounds((String) titleTextView.getText(), 0, 1, rect);
                 int x = titleTextView.getTextStartX() + Theme.getCurrentHolidayDrawableXOffset() + (rect.width() - (drawable.getIntrinsicWidth() + Theme.getCurrentHolidayDrawableXOffset())) / 2;
-                int y = titleTextView.getTextStartY() + Theme.getCurrentHolidayDrawableYOffset() + (int) Math.ceil((titleTextView.getTextHeight() - rect.height()) / 2.0f);
+                boolean hasSubTitle = subtitleTextView != null && subtitleTextView.getVisibility() != GONE;
+                int y = titleTextView.getTextStartY() + Theme.getCurrentHolidayDrawableYOffset() + (int) Math.ceil(((hasSubTitle ? titleTextView.getTextHeight() : titleTextView.getMeasuredHeight()) - rect.height()) / 2.0f);
                 drawable.setBounds(x, y - drawable.getIntrinsicHeight(), x + drawable.getIntrinsicWidth(), y);
                 drawable.draw(canvas);
                 if (Theme.canStartHolidayAnimation()) {
@@ -276,7 +277,7 @@ public class ActionBar extends FrameLayout {
             return;
         }
         titleTextView = new SimpleTextView(getContext());
-        titleTextView.setGravity(Gravity.LEFT);
+        titleTextView.setGravity(Gravity.LEFT | Gravity.CENTER_VERTICAL);
         titleTextView.setTextColor(Theme.getColor(Theme.key_actionBarDefaultTitle));
         titleTextView.setTypeface(AndroidUtilities.getTypeface("fonts/rmedium.ttf"));
         addView(titleTextView, 0, LayoutHelper.createFrame(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, Gravity.LEFT | Gravity.TOP));
@@ -742,10 +743,11 @@ public class ActionBar extends FrameLayout {
                 }
             }
 
+            boolean hasSubTitle = subtitleTextView != null && subtitleTextView.getVisibility() != GONE;
             if (titleTextView != null && titleTextView.getVisibility() != GONE) {
-                titleTextView.measure(MeasureSpec.makeMeasureSpec(availableWidth, MeasureSpec.AT_MOST), MeasureSpec.makeMeasureSpec(AndroidUtilities.dp(24), MeasureSpec.AT_MOST));
+                titleTextView.measure(MeasureSpec.makeMeasureSpec(availableWidth, MeasureSpec.AT_MOST), MeasureSpec.makeMeasureSpec(hasSubTitle ? AndroidUtilities.dp(24) : actionBarHeight, MeasureSpec.EXACTLY));
             }
-            if (subtitleTextView != null && subtitleTextView.getVisibility() != GONE) {
+            if (hasSubTitle) {
                 subtitleTextView.measure(MeasureSpec.makeMeasureSpec(availableWidth, MeasureSpec.AT_MOST), MeasureSpec.makeMeasureSpec(AndroidUtilities.dp(20), MeasureSpec.AT_MOST));
             }
         }
@@ -777,14 +779,15 @@ public class ActionBar extends FrameLayout {
             menu.layout(menuLeft, additionalTop, menuLeft + menu.getMeasuredWidth(), additionalTop + menu.getMeasuredHeight());
         }
 
+        boolean hasSubTitle = subtitleTextView != null && subtitleTextView.getVisibility() != GONE;
         if (titleTextView != null && titleTextView.getVisibility() != GONE) {
             int textTop;
-            if (subtitleTextView != null && subtitleTextView.getVisibility() != GONE) {
+            if (hasSubTitle) {
                 textTop = (getCurrentActionBarHeight() / 2 - titleTextView.getTextHeight()) / 2 + AndroidUtilities.dp(!AndroidUtilities.isTablet() && getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE ? 2 : 3);
             } else {
-                textTop = (getCurrentActionBarHeight() - titleTextView.getTextHeight()) / 2;
+                textTop = (getCurrentActionBarHeight() - titleTextView.getMeasuredHeight()) / 2;
             }
-            titleTextView.layout(textLeft, additionalTop + textTop, textLeft + titleTextView.getMeasuredWidth(), additionalTop + textTop + titleTextView.getTextHeight());
+            titleTextView.layout(textLeft, additionalTop + textTop, textLeft + titleTextView.getMeasuredWidth(), additionalTop + textTop + (hasSubTitle ? titleTextView.getTextHeight() : titleTextView.getMeasuredHeight()));
         }
         if (subtitleTextView != null && subtitleTextView.getVisibility() != GONE) {
             int textTop = getCurrentActionBarHeight() / 2 + (getCurrentActionBarHeight() / 2 - subtitleTextView.getTextHeight()) / 2 - AndroidUtilities.dp(!AndroidUtilities.isTablet() && getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE ? 1 : 1);
