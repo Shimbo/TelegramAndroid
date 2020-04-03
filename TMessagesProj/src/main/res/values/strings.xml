@@ -21,7 +21,7 @@
     <!--code enter view-->
     <string name="YourCode">Phone verification</string>
     <string name="SentSmsCode">We’ve sent an SMS with an activation code to your phone **%1$s**.</string>
-    <string name="SentAppCode">We\'ve sent the code to the **Telefrost** app on your other device.</string>
+    <string name="SentAppCode">We\'ve sent the code to **Telefrost** or **Telegram** app on your other device.</string>
     <string name="SentAppCodeTitle">Check your Telefrost messages</string>
     <string name="SentSmsCodeTitle">Enter code</string>
     <string name="SentCallCode">We\'re calling your phone **%1$s**.\n\nDon\'t accept the call, Telefrost will process everything automatically.</string>
