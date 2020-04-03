@@ -425,7 +425,7 @@ public class SimpleTextView extends View implements Drawable.Callback {
             }
             int dw = (int) (rightDrawable.getIntrinsicWidth() * rightDrawableScale);
             int dh = (int) (rightDrawable.getIntrinsicHeight() * rightDrawableScale);
-            int y = (textHeight - dh) / 2 + rightDrawableTopPadding;
+            int y = (getHeight() - dh) / 2 + rightDrawableTopPadding;
             rightDrawable.setBounds(x, y, x + dw, y + dh);
             rightDrawable.draw(canvas);
             totalWidth += drawablePadding + dw;
