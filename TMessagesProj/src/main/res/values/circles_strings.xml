@@ -3,6 +3,8 @@
     <string name="AppName">Telefrost</string>
     <string name="AppNameBeta">Telefrost Beta</string>
 
+    <string name="circles_intro_description">We built **Telefrost** out of our own love of **Telegram**, multiplied by a need for a better workspace management solution.</string>
+
     <string name="circles_workspaces">Workspaces</string>
     <string name="circles_create">Create workspace</string>
     <string name="circles_personal">Personal</string>
