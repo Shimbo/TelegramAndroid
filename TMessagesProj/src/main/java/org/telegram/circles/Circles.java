@@ -1,6 +1,7 @@
 package org.telegram.circles;
 
 import android.os.SystemClock;
+import android.view.View;
 
 import androidx.annotation.NonNull;
 
@@ -120,13 +121,13 @@ public class Circles implements NotificationCenter.NotificationCenterDelegate {
             CircleData personal = new CircleData();
             personal.id = CirclesConstants.DEFAULT_CIRCLE_ID_PERSONAL;
             personal.circleType = CircleType.PERSONAL;
-            personal.counter = countUnread(dialogsMap.get(CirclesConstants.DEFAULT_CIRCLE_ID_PERSONAL));
+            personal.counter = countUnread(dialogsMap.get(CirclesConstants.DEFAULT_CIRCLE_ID_PERSONAL), false);
             cachedCircles.add(personal);
 
             if (circlesList != null && circlesList.circles != null) {
                 for (CircleData circle : circlesList.circles) {
                     Logger.d("Received circle "+circle.name+" with "+circle.getAllPeerIds().size()+" members");
-                    circle.counter = countUnread(dialogsMap.get(circle.id));
+                    circle.counter = countUnread(dialogsMap.get(circle.id), false);
                     cachedCircles.add(circle);
                 }
             }
@@ -136,7 +137,7 @@ public class Circles implements NotificationCenter.NotificationCenterDelegate {
                 CircleData archive = new CircleData();
                 archive.id = CirclesConstants.DEFAULT_CIRCLE_ID_ARCHIVED;
                 archive.circleType = CircleType.ARCHIVE;
-                archive.counter = countUnread(archivedDialogs);
+                archive.counter = countUnread(archivedDialogs, false);
                 cachedCircles.add(archive);
             }
 
@@ -145,20 +146,20 @@ public class Circles implements NotificationCenter.NotificationCenterDelegate {
         }
     }
 
-    private int countUnread(Set<TLRPC.Dialog> dialogs) {
+    private int countUnread(Set<TLRPC.Dialog> dialogs, boolean ignoreBadging) {
         int count = 0;
         NotificationsController controller = accountInstance.getNotificationsController();
-        if (controller.showBadgeNumber && dialogs != null && dialogs.size() > 0) {
+        if ((controller.showBadgeNumber || ignoreBadging) && dialogs != null && dialogs.size() > 0) {
             for (TLRPC.Dialog dialog : dialogs) {
-                if (!controller.showBadgeMuted && accountInstance.getMessagesController().isDialogMuted(dialog.id)) {
+                if (!ignoreBadging && !controller.showBadgeMuted && accountInstance.getMessagesController().isDialogMuted(dialog.id)) {
                     continue;
                 }
-                if (controller.showBadgeMessages) {
+                if (controller.showBadgeMessages && !ignoreBadging) {
                     count += dialog.unread_count;
                 } else if (dialog.unread_count > 0) {
                     count++;
                 }
-                if (dialog instanceof TLRPC.TL_dialogFolder && ((TLRPC.TL_dialogFolder) dialog).folder.id != 0) {
+                if (!ignoreBadging && dialog instanceof TLRPC.TL_dialogFolder && ((TLRPC.TL_dialogFolder) dialog).folder.id != 0) {
                     count += dialog.unread_mentions_count;
                 }
             }
@@ -194,6 +195,7 @@ public class Circles implements NotificationCenter.NotificationCenterDelegate {
         if (modifiedDialogs || changedCircle) {
             accountInstance.getMessagesController().sortDialogs(null);
             accountInstance.getNotificationCenter().postNotificationName(NotificationCenter.dialogsNeedReload, true);
+            accountInstance.getNotificationCenter().postNotificationName(NotificationCenter.circleChanged);
         }
     }
 
@@ -213,7 +215,7 @@ public class Circles implements NotificationCenter.NotificationCenterDelegate {
         synchronized (cachedCircles) {
             Map<Long, Set<TLRPC.Dialog>> dialogsMap = Utils.mapDialogsToCircles(cachedCircles, accountInstance);
             for (CircleData circle : cachedCircles) {
-                circle.counter = countUnread(dialogsMap.get(circle.id));
+                circle.counter = countUnread(dialogsMap.get(circle.id), false);
             }
         }
     }
@@ -770,6 +772,38 @@ public class Circles implements NotificationCenter.NotificationCenterDelegate {
         return res;
     }
 
+    public ArrayList<TLRPC.Dialog> filterOutNonPersonal(ArrayList<TLRPC.Dialog> dialogs) {
+        if (dialogs == null) {
+            return dialogs;
+        }
+        Set<TLRPC.Dialog> personalDialogs = Utils.mapDialogsToCircles(cachedCircles, accountInstance).get(CirclesConstants.DEFAULT_CIRCLE_ID_PERSONAL);
+        if (personalDialogs == null) {
+            return dialogs;
+        }
+        ArrayList<TLRPC.Dialog> res = new ArrayList<>();
+        for (TLRPC.Dialog dialog : dialogs) {
+            if (personalDialogs.contains(dialog)) {
+                res.add(dialog);
+            }
+        }
+        return res;
+    }
+
+    public int countPersonalUnreads(ArrayList<TLRPC.Dialog> dialogs) {
+        Set<TLRPC.Dialog> personalDialogs = Utils.mapDialogsToCircles(cachedCircles, accountInstance).get(CirclesConstants.DEFAULT_CIRCLE_ID_PERSONAL);
+        if (personalDialogs == null) {
+            return 0;
+        }
+        if (dialogs != null) {
+            for (Iterator<TLRPC.Dialog> i = personalDialogs.iterator(); i.hasNext();) {
+                if (!dialogs.contains(i.next())) {
+                    i.remove();
+                }
+            }
+        }
+        return countUnread(personalDialogs, true);
+    }
+
     public List<CircleData> getCachedCircles() {
         return cachedCircles;
     }
@@ -847,6 +881,10 @@ public class Circles implements NotificationCenter.NotificationCenterDelegate {
 
     public long getSelectedCircle() {
         return preferences.getSelectedCircleId();
+    }
+
+    public int getFiltersTabVisibility() {
+        return (getSelectedCircle() == CirclesConstants.DEFAULT_CIRCLE_ID_PERSONAL) ? View.VISIBLE : View.GONE;
     }
 
     public void createWorkspace(String circleName, @NonNull SuccessListener listener) {
