@@ -14,8 +14,8 @@ public final class CirclesConstants {
 
     static final long CIRCLES_CACHE_UPDATE_INTERVAL = 2L * 60L * 1000L;
 
-    public static final String BASE_URL = BuildConfig.DEBUG ? "https://api.dev.randomcoffee.us" : "https://api.circles.is";
-    //public static final String BASE_URL = "https://api.circles.is";
+    public static final String BASE_URL = BuildConfig.DEBUG ? "https://api.peerboard.dev/" : "https://api.peerboard.org/";
+    //public static final String BASE_URL = "https://api.peerboard.org/tgfork/";
     static final String BOT_HANDLE = BuildConfig.DEBUG ? "@TelefrostDevBot" : "@TelefrostConciergeBot";
     //public static final String BOT_HANDLE = "@TelefrostConciergeBot";
     static final String NEWS_CHANNEL_HANDLE = "@telefrostnews";
