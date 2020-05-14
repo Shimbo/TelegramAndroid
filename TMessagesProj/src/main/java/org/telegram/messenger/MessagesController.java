@@ -11916,68 +11916,7 @@ public class MessagesController extends BaseController implements NotificationCe
                 sortingDialogFilter = selectedDialogFilter[b];
                 Collections.sort(allDialogs, dialogDateComparator);
                 ArrayList<TLRPC.Dialog> dialogsByFilter = selectedDialogFilter[b].dialogs;
-
-                for (int a = 0, N = allDialogs.size(); a < N; a++) {
-                    TLRPC.Dialog d = allDialogs.get(a);
-                    int high_id = (int) (d.id >> 32);
-                    int lower_id = (int) d.id;
-                    if (lower_id == 0 && high_id != 0) {
-                        TLRPC.EncryptedChat encryptedChat = getEncryptedChat(high_id);
-                        if (encryptedChat != null) {
-                            lower_id = encryptedChat.user_id;
-                        }
-                    }
-                    if (d instanceof TLRPC.TL_dialog) {
-                        if (selectedDialogFilter[b].alwaysShow.contains(lower_id)) {
-                            dialogsByFilter.add(d);
-                        } else {
-                            if (d.folder_id != 0 && (selectedDialogFilter[b].flags & DIALOG_FILTER_FLAG_EXCLUDE_ARCHIVED) != 0) {
-                                continue;
-                            }
-                            boolean skip = false;
-                            if ((selectedDialogFilter[b].flags & DIALOG_FILTER_FLAG_EXCLUDE_MUTED) != 0 && isDialogMuted(d.id) && d.unread_mentions_count == 0 ||
-                                    (selectedDialogFilter[b].flags & DIALOG_FILTER_FLAG_EXCLUDE_READ) != 0 && d.unread_count == 0 && !d.unread_mark && d.unread_mentions_count == 0 ||
-                                    selectedDialogFilter[b].neverShow.contains(lower_id)) {
-                                skip = true;
-                            }
-                            if (!skip) {
-                                if (lower_id > 0) {
-                                    TLRPC.User user = getUser(lower_id);
-                                    if (user != null) {
-                                        if (!user.bot) {
-                                            if (user.self || user.contact || getContactsController().isContact(lower_id)) {
-                                                if ((selectedDialogFilter[b].flags & DIALOG_FILTER_FLAG_CONTACTS) != 0) {
-                                                    dialogsByFilter.add(d);
-                                                }
-                                            } else {
-                                                if ((selectedDialogFilter[b].flags & DIALOG_FILTER_FLAG_NON_CONTACTS) != 0) {
-                                                    dialogsByFilter.add(d);
-                                                }
-                                            }
-                                        } else {
-                                            if ((selectedDialogFilter[b].flags & DIALOG_FILTER_FLAG_BOTS) != 0) {
-                                                dialogsByFilter.add(d);
-                                            }
-                                        }
-                                    }
-                                } else if (lower_id < 0) {
-                                    TLRPC.Chat chat = getChat(-lower_id);
-                                    if (chat != null) {
-                                        if (ChatObject.isChannel(chat) && !chat.megagroup) {
-                                            if ((selectedDialogFilter[b].flags & DIALOG_FILTER_FLAG_CHANNELS) != 0) {
-                                                dialogsByFilter.add(d);
-                                            }
-                                        } else {
-                                            if ((selectedDialogFilter[b].flags & DIALOG_FILTER_FLAG_GROUPS) != 0) {
-                                                dialogsByFilter.add(d);
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
+                dialogsByFilter.addAll(selectFilterDialogs(selectedDialogFilter[b]));
             }
         }
 
@@ -12070,6 +12009,73 @@ public class MessagesController extends BaseController implements NotificationCe
                 dialogsByFolder.remove(folderId);
             }
         }
+    }
+
+    public ArrayList<TLRPC.Dialog> selectFilterDialogs(DialogFilter dialogFilter) {
+        ArrayList<TLRPC.Dialog> dialogsByFilter = new ArrayList<>();
+        for (int a = 0, N = allDialogs.size(); a < N; a++) {
+            TLRPC.Dialog d = allDialogs.get(a);
+            int high_id = (int) (d.id >> 32);
+            int lower_id = (int) d.id;
+            if (lower_id == 0 && high_id != 0) {
+                TLRPC.EncryptedChat encryptedChat = getEncryptedChat(high_id);
+                if (encryptedChat != null) {
+                    lower_id = encryptedChat.user_id;
+                }
+            }
+            if (d instanceof TLRPC.TL_dialog) {
+                if (dialogFilter.alwaysShow.contains(lower_id)) {
+                    dialogsByFilter.add(d);
+                } else {
+                    if (d.folder_id != 0 && (dialogFilter.flags & DIALOG_FILTER_FLAG_EXCLUDE_ARCHIVED) != 0) {
+                        continue;
+                    }
+                    boolean skip = false;
+                    if ((dialogFilter.flags & DIALOG_FILTER_FLAG_EXCLUDE_MUTED) != 0 && isDialogMuted(d.id) && d.unread_mentions_count == 0 ||
+                            (dialogFilter.flags & DIALOG_FILTER_FLAG_EXCLUDE_READ) != 0 && d.unread_count == 0 && !d.unread_mark && d.unread_mentions_count == 0 ||
+                            dialogFilter.neverShow.contains(lower_id)) {
+                        skip = true;
+                    }
+                    if (!skip) {
+                        if (lower_id > 0) {
+                            TLRPC.User user = getUser(lower_id);
+                            if (user != null) {
+                                if (!user.bot) {
+                                    if (user.self || user.contact || getContactsController().isContact(lower_id)) {
+                                        if ((dialogFilter.flags & DIALOG_FILTER_FLAG_CONTACTS) != 0) {
+                                            dialogsByFilter.add(d);
+                                        }
+                                    } else {
+                                        if ((dialogFilter.flags & DIALOG_FILTER_FLAG_NON_CONTACTS) != 0) {
+                                            dialogsByFilter.add(d);
+                                        }
+                                    }
+                                } else {
+                                    if ((dialogFilter.flags & DIALOG_FILTER_FLAG_BOTS) != 0) {
+                                        dialogsByFilter.add(d);
+                                    }
+                                }
+                            }
+                        } else if (lower_id < 0) {
+                            TLRPC.Chat chat = getChat(-lower_id);
+                            if (chat != null) {
+                                if (ChatObject.isChannel(chat) && !chat.megagroup) {
+                                    if ((dialogFilter.flags & DIALOG_FILTER_FLAG_CHANNELS) != 0) {
+                                        dialogsByFilter.add(d);
+                                    }
+                                } else {
+                                    if ((dialogFilter.flags & DIALOG_FILTER_FLAG_GROUPS) != 0) {
+                                        dialogsByFilter.add(d);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        return dialogsByFilter;
     }
 
     private void addDialogToItsFolder(int index, TLRPC.Dialog dialog) {

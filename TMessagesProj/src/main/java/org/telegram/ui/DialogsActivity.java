@@ -1396,6 +1396,7 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
         if (searchString == null) {
             currentConnectionState = getConnectionsManager().getConnectionState();
 
+            getNotificationCenter().addObserver(this, NotificationCenter.circleChanged);
             getNotificationCenter().addObserver(this, NotificationCenter.dialogsNeedReload);
             NotificationCenter.getGlobalInstance().addObserver(this, NotificationCenter.emojiDidLoad);
             if (!onlySelect) {
@@ -1442,6 +1443,7 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
     public void onFragmentDestroy() {
         super.onFragmentDestroy();
         if (searchString == null) {
+            getNotificationCenter().removeObserver(this, NotificationCenter.circleChanged);
             getNotificationCenter().removeObserver(this, NotificationCenter.dialogsNeedReload);
             NotificationCenter.getGlobalInstance().removeObserver(this, NotificationCenter.emojiDidLoad);
             if (!onlySelect) {
@@ -1775,13 +1777,14 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
                 @Override
                 public int getTabCounter(int tabId) {
                     if (tabId == Integer.MAX_VALUE) {
-                        return getMessagesStorage().getMainUnreadCount();
+                        return org.telegram.circles.Circles.getInstance(currentAccount).countPersonalUnreads(null);
                     }
                     ArrayList<MessagesController.DialogFilter> dialogFilters = getMessagesController().dialogFilters;
                     if (tabId < 0 || tabId >= dialogFilters.size()) {
                         return 0;
                     }
-                    return getMessagesController().dialogFilters.get(tabId).unreadCount;
+                    return org.telegram.circles.Circles.getInstance(currentAccount).countPersonalUnreads(
+                            getMessagesController().selectFilterDialogs(getMessagesController().dialogFilters.get(tabId)));
                 }
 
                 @Override
@@ -2930,7 +2933,7 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
         SharedPreferences preferences = MessagesController.getMainSettings(currentAccount);
         if (!filters.isEmpty()) {
             if (force || filterTabsView.getVisibility() != View.VISIBLE) {
-                filterTabsView.setVisibility(View.VISIBLE);
+                filterTabsView.setVisibility(org.telegram.circles.Circles.getInstance(currentAccount).getFiltersTabVisibility());
                 int id = filterTabsView.getCurrentTabId();
                 if (id != Integer.MAX_VALUE && id >= filters.size()) {
                     filterTabsView.resetTabId();
@@ -4712,7 +4715,13 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
 
     @Override
     public void didReceivedNotification(int id, int account, Object... args) {
-        if (id == NotificationCenter.dialogsNeedReload) {
+        if (id == NotificationCenter.circleChanged) {
+            updateFilterTabs(true);
+            scrollToFilterTab(Integer.MAX_VALUE);
+            if (filterTabsView != null && filterTabsView.getVisibility() == View.VISIBLE) {
+                filterTabsView.checkTabsCounter();
+            }
+        } else if (id == NotificationCenter.dialogsNeedReload) {
             if (viewPages == null || dialogsListFrozen) {
                 return;
             }
@@ -4913,9 +4922,9 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
         } else if (dialogsType == 7 || dialogsType == 8) {
             MessagesController.DialogFilter dialogFilter = messagesController.selectedDialogFilter[dialogsType == 7 ? 0 : 1];
             if (dialogFilter == null) {
-                return messagesController.getDialogs(folderId);
+                return org.telegram.circles.Circles.getInstance(currentAccount).filterOutNonPersonal(messagesController.getDialogs(folderId));
             } else {
-                return dialogFilter.dialogs;
+                return org.telegram.circles.Circles.getInstance(currentAccount).filterOutNonPersonal(dialogFilter.dialogs);
             }
         }
         return null;
