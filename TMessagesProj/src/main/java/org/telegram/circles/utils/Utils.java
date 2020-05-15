@@ -71,9 +71,12 @@ public final class Utils {
     }
 
     @SuppressWarnings("UseSparseArrays")
-    public static Map<Long, Set<TLRPC.Dialog>> mapDialogsToCircles(@NonNull List<CircleData> circlesList, AccountInstance accountInstance) {
+    public static Map<Long, Set<TLRPC.Dialog>> mapDialogsToCircles(List<CircleData> circlesList, AccountInstance accountInstance) {
         ArrayList<TLRPC.Dialog> dialogs = accountInstance.getMessagesController().getAllDialogs();
         Map<Long, Set<TLRPC.Dialog>> map = new HashMap<>();
+        if (circlesList == null || dialogs == null) {
+            return map;
+        }
         synchronized (circlesList) {
             for (TLRPC.Dialog dialog : dialogs) {
                 if (dialog instanceof TLRPC.TL_dialogFolder && ((TLRPC.TL_dialogFolder) dialog).folder.id == 1) {
