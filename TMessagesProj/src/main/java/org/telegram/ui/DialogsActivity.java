@@ -2037,7 +2037,7 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
                     DialogsActivity dialogsActivity = new DialogsActivity(arguments);
                     dialogsActivity.setDelegate(oldDelegate);
                     launchActivity.presentFragment(dialogsActivity, false, true);
-                } else if (id == pin || id == read || id == delete || id == clear || id == mute || id == archive || id == workspace || id == block || id == archive2 || id == pin2) {
+                } else if (id == pin || id == read || id == delete || id == clear || id == mute || id == archive || id == block || id == archive2 || id == pin2 || id == workspace) {
                     perfromSelectedDialogsAction(id, true);
                 }
             }
@@ -2058,11 +2058,9 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
         actionMode.addView(selectedDialogsCountTextView, LayoutHelper.createLinear(0, LayoutHelper.MATCH_PARENT, 1.0f, 72, 0, 0, 0));
         selectedDialogsCountTextView.setOnTouchListener((v, event) -> true);
 
-
         workspaceItem = actionMode.addItemWithWidth(workspace, R.drawable.input_bot2, AndroidUtilities.dp(54));
         workspaceItem.setContentDescription(context.getString(R.string.circles_move_to_workspace));
-        pinItem = actionMode.addItemWithWidth(pin, R.drawable.msg_pin, AndroidUtilities.dp(54));
-        muteItem = actionMode.addItemWithWidth(mute, R.drawable.msg_mute, AndroidUtilities.dp(54));
+        muteItem = actionMode.addItemWithWidth(mute, R.drawable.msg_archive, AndroidUtilities.dp(54));
         archive2Item = actionMode.addItemWithWidth(archive2, R.drawable.msg_archive, AndroidUtilities.dp(54));
         deleteItem = actionMode.addItemWithWidth(delete, R.drawable.msg_delete, AndroidUtilities.dp(54), LocaleController.getString("Delete", R.string.Delete));
         ActionBarMenuItem otherItem = actionMode.addItemWithWidth(0, R.drawable.ic_ab_other, AndroidUtilities.dp(54), LocaleController.getString("AccDescrMoreOptions", R.string.AccDescrMoreOptions));
