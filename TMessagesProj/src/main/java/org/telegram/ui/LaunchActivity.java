@@ -565,6 +565,7 @@ public class LaunchActivity extends Activity implements ActionBarLayout.ActionBa
                 actionBarLayout.addFragmentToStack(new LoginActivity());
                 drawerLayoutContainer.setAllowOpenDrawer(false, false);
             } else {
+                org.telegram.circles.Circles.getInstance(currentAccount);
                 DialogsActivity dialogsActivity = new DialogsActivity(null);
                 dialogsActivity.setSideMenu(sideMenu);
                 actionBarLayout.addFragmentToStack(dialogsActivity);
@@ -1645,6 +1646,7 @@ public class LaunchActivity extends Activity implements ActionBarLayout.ActionBa
                     if (mainFragmentsStack.isEmpty() || MessagesController.getInstance(intentAccount[0]).checkCanOpenChat(args, mainFragmentsStack.get(mainFragmentsStack.size() - 1))) {
                         ChatActivity fragment = new ChatActivity(args);
                         if (actionBarLayout.presentFragment(fragment, false, true, true, false)) {
+                            org.telegram.circles.Circles.getInstance(currentAccount).openedChatFromPush(push_user_id, push_chat_id, push_enc_id);
                             pushOpened = true;
                         }
                     }
@@ -1656,6 +1658,7 @@ public class LaunchActivity extends Activity implements ActionBarLayout.ActionBa
                     if (mainFragmentsStack.isEmpty() || MessagesController.getInstance(intentAccount[0]).checkCanOpenChat(args, mainFragmentsStack.get(mainFragmentsStack.size() - 1))) {
                         ChatActivity fragment = new ChatActivity(args);
                         if (actionBarLayout.presentFragment(fragment, false, true, true, false)) {
+                            org.telegram.circles.Circles.getInstance(currentAccount).openedChatFromPush(push_user_id, push_chat_id, push_enc_id);
                             pushOpened = true;
                         }
                     }
@@ -1664,6 +1667,7 @@ public class LaunchActivity extends Activity implements ActionBarLayout.ActionBa
                     args.putInt("enc_id", push_enc_id);
                     ChatActivity fragment = new ChatActivity(args);
                     if (actionBarLayout.presentFragment(fragment, false, true, true, false)) {
+                        org.telegram.circles.Circles.getInstance(currentAccount).openedChatFromPush(push_user_id, push_chat_id, push_enc_id);
                         pushOpened = true;
                     }
                 } else if (showDialogsList) {

@@ -226,6 +226,7 @@ public class LoginActivity extends BaseFragment {
     public LoginActivity(int account) {
         super();
         currentAccount = account;
+        org.telegram.circles.Circles.getInstance(account);
         newAccount = true;
     }
 
@@ -1079,7 +1080,20 @@ public class LoginActivity extends BaseFragment {
         ContactsController.getInstance(currentAccount).checkAppAccount();
         MessagesController.getInstance(currentAccount).checkProxyInfo(true);
         ConnectionsManager.getInstance(currentAccount).updateDcSettings();
-        needFinishActivity(afterSignup);
+        showEditDoneProgress(true, true);
+        org.telegram.circles.Circles.getInstance(currentAccount).onAuthSuccess(new org.telegram.circles.SuccessListener(getParentActivity(), this) {
+            @Override
+            public void onSuccess() {
+                needHideProgress(false, false);
+                needFinishActivity(afterSignup);
+            }
+
+            @Override
+            public String onError(Throwable error) {
+                needHideProgress(false, false);
+                return super.onError(error);
+            }
+        });
     }
 
     private void fillNextCodeParams(Bundle params, TLRPC.TL_auth_sentCode res) {

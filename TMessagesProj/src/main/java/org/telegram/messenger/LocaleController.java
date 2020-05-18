@@ -32,10 +32,12 @@ import java.io.FileInputStream;
 import java.io.FileWriter;
 import java.text.NumberFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Currency;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.TimeZone;
 
@@ -927,8 +929,22 @@ public class LocaleController {
         return localeInfo == null || TextUtils.isEmpty(localeInfo.name) ? getString("LanguageName", R.string.LanguageName) : localeInfo.name;
     }
 
+
+    private static final List<String> untranslatableKeys = Arrays.asList(
+            "AppName",
+            "AppNameBeta",
+            "Page1Title",
+            "MapPreviewProviderTelegram",
+            "NotificationHiddenName",
+            "NotificationHiddenChatName",
+            "SecretChatName"
+    );
+    private static boolean isUntranslatableTelefrostString(String key) {
+        return untranslatableKeys.contains(key);
+    }
+
     private String getStringInternal(String key, int res) {
-        String value = BuildVars.USE_CLOUD_STRINGS ? localeValues.get(key) : null;
+        String value = BuildVars.USE_CLOUD_STRINGS && !isUntranslatableTelefrostString(key) ? localeValues.get(key) : null;
         if (value == null) {
             try {
                 value = ApplicationLoader.applicationContext.getString(res);
@@ -989,7 +1005,7 @@ public class LocaleController {
                 stringBuilder.insert(a, ',');
             }
 
-            String value = BuildVars.USE_CLOUD_STRINGS ? getInstance().localeValues.get(param) : null;
+            String value = BuildVars.USE_CLOUD_STRINGS && !isUntranslatableTelefrostString(key) ? getInstance().localeValues.get(param) : null;
             if (value == null) {
                 int resourceId = ApplicationLoader.applicationContext.getResources().getIdentifier(param, "string", ApplicationLoader.applicationContext.getPackageName());
                 value = ApplicationLoader.applicationContext.getString(resourceId);
@@ -1009,7 +1025,7 @@ public class LocaleController {
 
     public static String formatString(String key, int res, Object... args) {
         try {
-            String value = BuildVars.USE_CLOUD_STRINGS ? getInstance().localeValues.get(key) : null;
+            String value = BuildVars.USE_CLOUD_STRINGS && !isUntranslatableTelefrostString(key) ? getInstance().localeValues.get(key) : null;
             if (value == null) {
                 value = ApplicationLoader.applicationContext.getString(res);
             }

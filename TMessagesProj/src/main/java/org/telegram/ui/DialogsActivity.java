@@ -226,11 +226,12 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
     private NumberTextView selectedDialogsCountTextView;
     private ArrayList<View> actionModeViews = new ArrayList<>();
     private ActionBarMenuItem deleteItem;
-    private ActionBarMenuItem pinItem;
+    private ActionBarMenuSubItem pinItem;
     private ActionBarMenuItem muteItem;
     private ActionBarMenuItem archive2Item;
     private ActionBarMenuSubItem pin2Item;
     private ActionBarMenuSubItem archiveItem;
+    private ActionBarMenuItem workspaceItem;
     private ActionBarMenuSubItem clearItem;
     private ActionBarMenuSubItem readItem;
     private ActionBarMenuSubItem blockItem;
@@ -318,6 +319,7 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
     private final static int block = 106;
     private final static int archive2 = 107;
     private final static int pin2 = 108;
+    private final static int workspace = 109;
 
     private final static int ARCHIVE_ITEM_STATE_PINNED = 0;
     private final static int ARCHIVE_ITEM_STATE_SHOWED = 1;
@@ -1394,6 +1396,7 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
         if (searchString == null) {
             currentConnectionState = getConnectionsManager().getConnectionState();
 
+            getNotificationCenter().addObserver(this, NotificationCenter.circleChanged);
             getNotificationCenter().addObserver(this, NotificationCenter.dialogsNeedReload);
             NotificationCenter.getGlobalInstance().addObserver(this, NotificationCenter.emojiDidLoad);
             if (!onlySelect) {
@@ -1440,6 +1443,7 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
     public void onFragmentDestroy() {
         super.onFragmentDestroy();
         if (searchString == null) {
+            getNotificationCenter().removeObserver(this, NotificationCenter.circleChanged);
             getNotificationCenter().removeObserver(this, NotificationCenter.dialogsNeedReload);
             NotificationCenter.getGlobalInstance().removeObserver(this, NotificationCenter.emojiDidLoad);
             if (!onlySelect) {
@@ -1618,11 +1622,7 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
             if (folderId != 0) {
                 actionBar.setTitle(LocaleController.getString("ArchivedChats", R.string.ArchivedChats));
             } else {
-                if (BuildVars.DEBUG_VERSION) {
-                    actionBar.setTitle("Telegram Beta");
-                } else {
-                    actionBar.setTitle(LocaleController.getString("AppName", R.string.AppName));
-                }
+                org.telegram.circles.Circles.getInstance(currentAccount).updateDialogActionBarTitle(actionBar);
             }
             if (folderId == 0) {
                 actionBar.setSupportsHolidayImage(true);
@@ -1777,13 +1777,14 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
                 @Override
                 public int getTabCounter(int tabId) {
                     if (tabId == Integer.MAX_VALUE) {
-                        return getMessagesStorage().getMainUnreadCount();
+                        return org.telegram.circles.Circles.getInstance(currentAccount).countPersonalUnreads(null);
                     }
                     ArrayList<MessagesController.DialogFilter> dialogFilters = getMessagesController().dialogFilters;
                     if (tabId < 0 || tabId >= dialogFilters.size()) {
                         return 0;
                     }
-                    return getMessagesController().dialogFilters.get(tabId).unreadCount;
+                    return org.telegram.circles.Circles.getInstance(currentAccount).countPersonalUnreads(
+                            getMessagesController().selectFilterDialogs(getMessagesController().dialogFilters.get(tabId)));
                 }
 
                 @Override
@@ -2039,7 +2040,7 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
                     DialogsActivity dialogsActivity = new DialogsActivity(arguments);
                     dialogsActivity.setDelegate(oldDelegate);
                     launchActivity.presentFragment(dialogsActivity, false, true);
-                } else if (id == pin || id == read || id == delete || id == clear || id == mute || id == archive || id == block || id == archive2 || id == pin2) {
+                } else if (id == pin || id == read || id == delete || id == clear || id == mute || id == archive || id == block || id == archive2 || id == pin2 || id == workspace) {
                     perfromSelectedDialogsAction(id, true);
                 }
             }
@@ -2060,17 +2061,20 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
         actionMode.addView(selectedDialogsCountTextView, LayoutHelper.createLinear(0, LayoutHelper.MATCH_PARENT, 1.0f, 72, 0, 0, 0));
         selectedDialogsCountTextView.setOnTouchListener((v, event) -> true);
 
-        pinItem = actionMode.addItemWithWidth(pin, R.drawable.msg_pin, AndroidUtilities.dp(54));
-        muteItem = actionMode.addItemWithWidth(mute, R.drawable.msg_mute, AndroidUtilities.dp(54));
+        workspaceItem = actionMode.addItemWithWidth(workspace, R.drawable.input_bot2, AndroidUtilities.dp(54));
+        workspaceItem.setContentDescription(context.getString(R.string.circles_move_to_workspace));
+        muteItem = actionMode.addItemWithWidth(mute, R.drawable.msg_archive, AndroidUtilities.dp(54));
         archive2Item = actionMode.addItemWithWidth(archive2, R.drawable.msg_archive, AndroidUtilities.dp(54));
         deleteItem = actionMode.addItemWithWidth(delete, R.drawable.msg_delete, AndroidUtilities.dp(54), LocaleController.getString("Delete", R.string.Delete));
         ActionBarMenuItem otherItem = actionMode.addItemWithWidth(0, R.drawable.ic_ab_other, AndroidUtilities.dp(54), LocaleController.getString("AccDescrMoreOptions", R.string.AccDescrMoreOptions));
+        pinItem = otherItem.addSubItem(pin, R.drawable.msg_pin, LocaleController.getString("PinToTop", R.string.PinToTop));
         archiveItem = otherItem.addSubItem(archive, R.drawable.msg_archive, LocaleController.getString("Archive", R.string.Archive));
         pin2Item = otherItem.addSubItem(pin2, R.drawable.msg_pin, LocaleController.getString("DialogPin", R.string.DialogPin));
         readItem = otherItem.addSubItem(read, R.drawable.msg_markread, LocaleController.getString("MarkAsRead", R.string.MarkAsRead));
         clearItem = otherItem.addSubItem(clear, R.drawable.msg_clear, LocaleController.getString("ClearHistory", R.string.ClearHistory));
         blockItem = otherItem.addSubItem(block, R.drawable.msg_block, LocaleController.getString("BlockUser", R.string.BlockUser));
 
+        actionModeViews.add(workspaceItem);
         actionModeViews.add(pinItem);
         actionModeViews.add(archive2Item);
         actionModeViews.add(muteItem);
@@ -2929,7 +2933,7 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
         SharedPreferences preferences = MessagesController.getMainSettings(currentAccount);
         if (!filters.isEmpty()) {
             if (force || filterTabsView.getVisibility() != View.VISIBLE) {
-                filterTabsView.setVisibility(View.VISIBLE);
+                filterTabsView.setVisibility(org.telegram.circles.Circles.getInstance(currentAccount).getFiltersTabVisibility());
                 int id = filterTabsView.getCurrentTabId();
                 if (id != Integer.MAX_VALUE && id >= filters.size()) {
                     filterTabsView.resetTabId();
@@ -3832,7 +3836,11 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
             filter = null;
         }
         int count = selectedDialogs.size();
-        if (action == archive || action == archive2) {
+        if (action == workspace) {
+            org.telegram.circles.Circles.getInstance(currentAccount).showWorkspaceSelector(this, new ArrayList<>(selectedDialogs));
+            hideActionMode(false);
+            return;
+        } else if (action == archive || action == archive2) {
             ArrayList<Long> copy = new ArrayList<>(selectedDialogs);
             getMessagesController().addDialogToFolder(copy, canUnarchiveCount == 0 ? 1 : 0, -1, null, 0);
             if (canUnarchiveCount == 0) {
@@ -4179,6 +4187,7 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
         int canDeleteCount = 0;
         int canUnpinCount = 0;
         int canArchiveCount = 0;
+        int canMoveWorkspaceCount = 0;
         canUnarchiveCount = 0;
         canUnmuteCount = 0;
         canMuteCount = 0;
@@ -4210,6 +4219,10 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
 
             if (hasUnread) {
                 canReadCount++;
+            }
+
+            if (org.telegram.circles.Circles.getInstance(currentAccount).canMoveDialog(dialog)) {
+                canMoveWorkspaceCount++;
             }
 
             if (folderId == 1 || dialog.folder_id == 1) {
@@ -4320,6 +4333,11 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
         } else {
             archiveItem.setVisibility(View.GONE);
             archive2Item.setVisibility(View.GONE);
+        }
+        if (canMoveWorkspaceCount > 0) {
+            workspaceItem.setVisibility(View.VISIBLE);
+        } else {
+            workspaceItem.setVisibility(View.GONE);
         }
         if (canPinCount + canUnpinCount != count) {
             pinItem.setVisibility(View.GONE);
@@ -4697,9 +4715,18 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
 
     @Override
     public void didReceivedNotification(int id, int account, Object... args) {
-        if (id == NotificationCenter.dialogsNeedReload) {
+        if (id == NotificationCenter.circleChanged) {
+            updateFilterTabs(true);
+            scrollToFilterTab(Integer.MAX_VALUE);
+            if (filterTabsView != null && filterTabsView.getVisibility() == View.VISIBLE) {
+                filterTabsView.checkTabsCounter();
+            }
+        } else if (id == NotificationCenter.dialogsNeedReload) {
             if (viewPages == null || dialogsListFrozen) {
                 return;
+            }
+            if (folderId == 0) {
+                org.telegram.circles.Circles.getInstance(currentAccount).updateDialogActionBarTitle(actionBar);
             }
             for (int a = 0; a < viewPages.length; a++) {
                 if (viewPages[a].getVisibility() != View.VISIBLE) {
@@ -4879,7 +4906,7 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
         }
         MessagesController messagesController = AccountInstance.getInstance(currentAccount).getMessagesController();
         if (dialogsType == 0) {
-            return messagesController.getDialogs(folderId);
+            return org.telegram.circles.Circles.getInstance(currentAccount).filterOutArchived(folderId, messagesController.getDialogs(folderId));
         } else if (dialogsType == 1) {
             return messagesController.dialogsServerOnly;
         } else if (dialogsType == 2) {
@@ -4895,9 +4922,9 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
         } else if (dialogsType == 7 || dialogsType == 8) {
             MessagesController.DialogFilter dialogFilter = messagesController.selectedDialogFilter[dialogsType == 7 ? 0 : 1];
             if (dialogFilter == null) {
-                return messagesController.getDialogs(folderId);
+                return org.telegram.circles.Circles.getInstance(currentAccount).filterOutNonPersonal(messagesController.getDialogs(folderId));
             } else {
-                return dialogFilter.dialogs;
+                return org.telegram.circles.Circles.getInstance(currentAccount).filterOutNonPersonal(dialogFilter.dialogs);
             }
         }
         return null;

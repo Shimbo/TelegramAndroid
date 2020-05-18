@@ -142,6 +142,7 @@ public class ThemeSetUrlActivity extends BaseFragment implements NotificationCen
         themeAccent = accent;
         info = accent != null ? accent.info : theme.info;
         currentAccount = accent != null ? accent.account : theme.account;
+        org.telegram.circles.Circles.getInstance(currentAccount);
         creatingNewTheme = newTheme;
     }
 
