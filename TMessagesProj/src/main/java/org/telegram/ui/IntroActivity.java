@@ -37,6 +37,7 @@ import org.telegram.messenger.NotificationCenter;
 import org.telegram.messenger.R;
 import org.telegram.messenger.UserConfig;
 import org.telegram.tgnet.ConnectionsManager;
+import org.telegram.tgnet.TLRPC;
 import org.telegram.ui.ActionBar.Theme;
 import org.telegram.ui.Components.LayoutHelper;
 
@@ -45,6 +46,7 @@ public class IntroActivity extends Activity implements NotificationCenter.Notifi
     private int currentAccount = UserConfig.selectedAccount;
 
     private ViewPager viewPager;
+    private TextView textView;
     private TextView startMessagingButton;
     private FrameLayout frameLayout2;
 
@@ -179,6 +181,24 @@ public class IntroActivity extends Activity implements NotificationCenter.Notifi
             });
         }
 
+        textView = new TextView(this);
+        textView.setTextColor(0xff1393d2);
+        textView.setGravity(Gravity.CENTER);
+        textView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 16);
+        frameLayout.addView(textView, LayoutHelper.createFrame(LayoutHelper.WRAP_CONTENT, 30, Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL, 0, 0, 0, 20));
+        textView.setOnClickListener(v -> {
+            if (startPressed || localeInfo == null) {
+                return;
+            }
+            LocaleController.getInstance().applyLanguage(localeInfo, true, false, currentAccount);
+            startPressed = true;
+            Intent intent2 = new Intent(IntroActivity.this, LaunchActivity.class);
+            intent2.putExtra("fromIntro", true);
+            startActivity(intent2);
+            destroyed = true;
+            finish();
+        });
+
         setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
         setContentView(scrollView);
 
@@ -241,6 +261,36 @@ public class IntroActivity extends Activity implements NotificationCenter.Notifi
                 break;
             }
         }
+        if (englishInfo == null || systemInfo == null || englishInfo == systemInfo) {
+            return;
+        }
+        TLRPC.TL_langpack_getStrings req = new TLRPC.TL_langpack_getStrings();
+        if (systemInfo != currentLocaleInfo) {
+            req.lang_code = systemInfo.getLangCode();
+            localeInfo = systemInfo;
+        } else {
+            req.lang_code = englishInfo.getLangCode();
+            localeInfo = englishInfo;
+        }
+        req.keys.add("ContinueOnThisLanguage");
+        ConnectionsManager.getInstance(currentAccount).sendRequest(req, (response, error) -> {
+            if (response != null) {
+                TLRPC.Vector vector = (TLRPC.Vector) response;
+                if (vector.objects.isEmpty()) {
+                    return;
+                }
+                final TLRPC.LangPackString string = (TLRPC.LangPackString) vector.objects.get(0);
+                if (string instanceof TLRPC.TL_langPackString) {
+                    AndroidUtilities.runOnUIThread(() -> {
+                        if (!destroyed) {
+                            textView.setText(string.value);
+                            SharedPreferences preferences = MessagesController.getGlobalMainSettings();
+                            preferences.edit().putString("language_showed2", systemLang.toLowerCase()).commit();
+                        }
+                    });
+                }
+            }
+        }, ConnectionsManager.RequestFlagWithoutLogin);
     }
 
     @Override
